@@ -1,19 +1,18 @@
 import os
-import sys
 import numpy as np
 from pathlib import Path
 from random import shuffle
 import shutil
 from lang_trans.arabic import buckwalter
 
-from extract_features import process_single_file
-from alphabet import Alphabet
+from src.features.extract_features import process_single_file
+from src.features.alphabet import Alphabet
 
 
 def create_points_and_target_inputs(data_path, save_dir):
 
     # create data input
-    ink_paths = list((Path(__file__).parent / data_path).glob("*_coor.txt"))
+    ink_paths = list(Path(data_path).glob("*_coor.txt"))
 
     os.makedirs(save_dir,exist_ok=True)
     print(len(ink_paths))
@@ -36,7 +35,7 @@ def create_points_and_target_inputs(data_path, save_dir):
         f.writelines("\n".join(backwalter_labels))
 
     alphabet=Alphabet('backwalter_labels.txt')
-    text_target_path = list((Path(__file__).parent / data_path).glob("*.txt"))
+    text_target_path = list(Path(data_path).glob("*.txt"))
 
     os.makedirs(save_dir,exist_ok=True)
     for file_name in text_target_path:
@@ -73,8 +72,8 @@ def main(data_path):
 
     os.makedirs(data_path,exist_ok=True)
 
-    train_data_path = "Training/"
-    val_data_path = "Validation/"
+    train_data_path = "data/Training/"
+    val_data_path = "data/Validation/"
     train_save = data_path + "train"
     dev_save = data_path + "dev"
     test_save = data_path + "test"
