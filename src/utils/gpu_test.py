@@ -1,6 +1,6 @@
 from logging import getLogger
 
-import tensorflow as tf
+# import tensorflow as tf
 from tensorflow.python.client import device_lib
 
 
