@@ -3,6 +3,7 @@ import numpy as np
 from pathlib import Path
 from random import shuffle
 import shutil
+from tqdm import tqdm
 from lang_trans.arabic import buckwalter
 
 from src.features.extract_features import process_single_file
@@ -16,7 +17,7 @@ def create_points_and_target_inputs(data_path, save_dir):
 
     os.makedirs(save_dir, exist_ok=True)
     print(len(ink_paths))
-    for filename in ink_paths:
+    for filename in tqdm(ink_paths):
         with open(filename) as file:
             process_single_file(
                 file, filename, f"{save_dir}/{filename.stem}_input.npy", normalize=True
@@ -25,7 +26,7 @@ def create_points_and_target_inputs(data_path, save_dir):
             try:
                 os.rename(filename, "processed/" + filename)
             except Exception as e:
-                pass
+                print(e)
 
     # create target inputs
     # create buckwalter alphabet
@@ -115,7 +116,7 @@ def create_points_and_target_inputs(data_path, save_dir):
     text_target_path = list(Path(data_path).glob("*.txt"))
 
     os.makedirs(save_dir, exist_ok=True)
-    for file_name in text_target_path:
+    for file_name in tqdm(text_target_path):
         unicode = ["\ufeff", "\xa0", "،", "–", "‐", "؛", ",", '"', "؟", "?", "‘", "\n"]
         if "coor" not in file_name.name:
             with open(file_name, "r") as f:
