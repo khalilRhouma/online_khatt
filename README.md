@@ -1,6 +1,6 @@
 # online_khatt
 
-The trainscript and feature preparation were taken from [DeepOnKHATT](https://github.com/khalilRhouma/DeepOnKHATT) project. The
+The train script and feature preparation were taken from [DeepOnKHATT](https://github.com/khalilRhouma/DeepOnKHATT) project. The
 goal is to improve/optimize the code and fine-tune the model on other dataset
 
 ## Environment Setup
