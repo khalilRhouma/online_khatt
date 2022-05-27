@@ -4,10 +4,9 @@ import os
 from tqdm import tqdm
 
 
-
-def convert_inkml_to_points(data_path: str) -> None :
+def convert_inkml_to_points(data_path: str, data_type="train") -> None :
     
-    for file in tqdm(os.listdir(data_path)):
+    for file in tqdm(os.listdir(data_path), desc=f"converting {data_type} data"):
         if file.endswith('.inkml'):
             filename = file.split('.')[0]
             inkml = file
@@ -36,12 +35,12 @@ def convert_inkml_to_points(data_path: str) -> None :
 
 def main(train_data_path, val_data_path):
     
-    convert_inkml_to_points(train_data_path)
-    convert_inkml_to_points(val_data_path)
+    convert_inkml_to_points(train_data_path, data_type="train")
+    convert_inkml_to_points(val_data_path, data_type="val")
 
 if __name__=="__main__":
     
-    train_data_path = "Training/"
-    val_data_path = "Validation/" 
+    train_data_path = "data/Training/"
+    val_data_path = "data/Validation/" 
 
     main(train_data_path, val_data_path)

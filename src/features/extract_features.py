@@ -6,8 +6,8 @@ import scipy.cluster.vq as vq
 import numpy as np
 import glob, os
 from pathlib import Path
-from preprocessing import preprocess_handwriting
-from feature import calculate_feature_vector_sequence
+from src.features.preprocessing import preprocess_handwriting
+from src.features.feature import calculate_feature_vector_sequence
 
 np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
 

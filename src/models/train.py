@@ -11,13 +11,13 @@ import tensorflow as tf
 from tensorflow.python.ops import ctc_ops
 
 # Custom modules
-from text import ndarray_to_text, sparse_tuple_to_texts
+from src.utils.text import ndarray_to_text, sparse_tuple_to_texts
 
 # in future different than utils class
-from utils import create_optimizer
-from datasets import read_datasets
-from set_dirs import get_conf_dir, get_model_dir
-import gpu as gpu_tool
+from src.utils.helpers import create_optimizer
+from src.features.datasets import read_datasets
+from src.utils.set_dirs import get_conf_dir, get_model_dir
+import src.utils.gpu as gpu_tool
 
 # Import the setup scripts for different types of model
 from rnn import BiRNN as BiRNN_model
@@ -63,7 +63,7 @@ class Trainer(object):
 
         # Load the configuration file depending on debug True/False
         self.debug = debug
-        self.conf_path = get_conf_dir(debug=self.debug)
+        self.conf_path = get_conf_dir()
         self.conf_path = os.path.join(self.conf_path, config_file)
         self.model_path = model_path
         self.load_configs()
@@ -81,10 +81,10 @@ class Trainer(object):
 
     def load_configs(self):
         parser = ConfigParser(os.environ)
-        if not os.path.exists('neural_network.ini'):
+        if not os.path.exists(self.conf_path):
             raise IOError("Configuration file '%s' does not exist" % self.conf_path)
         logging.info('Loading config from %s', self.conf_path)
-        parser.read('neural_network.ini')
+        parser.read(self.conf_path)
 
         # set which set of configs to import
         config_header = 'nn'
@@ -106,15 +106,15 @@ class Trainer(object):
         # self.random_seed = parser.getint(config_header, 'random_seed')
         self.model_dir = parser.get(config_header, 'model_dir')
 
-        # set the session name         
-        #self.session_name = '{}_{}'.format(
-        #    self.network_type, time.strftime("%Y%m%d-%H%M%S"))
-        self.session_name = '{}'.format(
-            self.network_type)
-        sess_prefix_str = 'develop'
-        if len(sess_prefix_str) > 0:
-            self.session_name = '{}_{}'.format(
-                sess_prefix_str, self.session_name)
+        #set the session name         
+        self.session_name = '{}_{}'.format(
+           self.network_type, time.strftime("%Y-%m-%d_%H-%M-%S"))
+        # self.session_name = '{}'.format(
+        #     self.network_type)
+        # sess_prefix_str = 'train'
+        # if len(sess_prefix_str) > 0:
+        #     self.session_name = '{}_{}'.format(
+        #         sess_prefix_str, self.session_name)
 
         # How often to save the model
         self.SAVE_MODEL_EPOCH_NUM = parser.getint(

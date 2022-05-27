@@ -4,7 +4,7 @@ import os
 import tensorflow as tf
 from configparser import ConfigParser
 
-from utils import variable_on_cpu
+from src.utils.helpers import variable_on_cpu
 
 def variable_on_cpu(name, shape, initializer):
     """
@@ -178,7 +178,7 @@ def BiRNN(conf_path, batch_x, seq_length, n_input, n_context):
     # file, You can obtain one at http://mozilla.org/MPL/2.0/.
     """
     parser = ConfigParser(os.environ)
-    parser.read('neural_network.ini')
+    parser.read(conf_path)
 
     dropout = [float(x) for x in parser.get('birnn', 'dropout_rates').split(',')]
     relu_clip = parser.getint('birnn', 'relu_clip')

@@ -1,13 +1,14 @@
 import os
+from configparser import ConfigParser
+
 import tensorflow as tf
 
-from configparser import ConfigParser
-from set_dirs import get_conf_dir
+from src.utils.set_dirs import get_conf_dir
 
 conf_dir = get_conf_dir(debug=False)
 
 parser = ConfigParser(os.environ)
-parser.read('neural_network.ini')
+parser.read('src/configs/neural_network.ini')
 
 # AdamOptimizer
 beta1 = parser.getfloat('optimizer', 'beta1')

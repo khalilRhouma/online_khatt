@@ -36,7 +36,7 @@ def get_data_dir(data_dir=None, home_dir=None):
 
 def get_conf_dir(conf_dir=None, home_dir=None, debug=False):
     if conf_dir is None:
-        conf_dir = os.path.join(get_home_dir(home_dir=home_dir), 'configs')       
+        conf_dir = os.path.join(get_home_dir(home_dir=home_dir), 'src/configs')       
         # Descend to the testing folder if debug==True
         if debug:
             conf_dir = os.path.join(conf_dir, 'testing')
