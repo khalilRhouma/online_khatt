@@ -2,15 +2,17 @@
 
 # import os
 import numpy as np
+
 # from src.utils.text import text_to_char_array, normalize_txt_file
 
+
 def get_handwriting_and_transcript(txt_files, hw_files, n_input, n_context):
-    '''
+    """
     Loads handwriting files and text transcriptions from ordered lists of filenames.
     Converts to handwriting to MFCC arrays and text to numerical arrays.
     Returns list of arrays. Returned handwriting array list can be padded with
     pad_sequences function in this same module.
-    '''
+    """
     handwriting = []
     handwriting_len = []
     transcript = []
@@ -19,15 +21,15 @@ def get_handwriting_and_transcript(txt_files, hw_files, n_input, n_context):
     for txt_file, hw_file in zip(txt_files, hw_files):
         # load handwriting and convert to features
         handwriting_data = handwritingfile_to_input_vector(hw_file, n_input, n_context)
-        handwriting_data = handwriting_data.astype('float32')
+        handwriting_data = handwriting_data.astype("float32")
 
         handwriting.append(handwriting_data)
         handwriting_len.append(np.int32(len(handwriting_data)))
 
         # load text transcription and convert to numerical array
-        
-        target=np.load(txt_file,None) # remove the next 2 lines 
-     
+
+        target = np.load(txt_file, None)  # remove the next 2 lines
+
         transcript.append(target)
         transcript_len.append(len(target))
 
@@ -39,7 +41,7 @@ def get_handwriting_and_transcript(txt_files, hw_files, n_input, n_context):
 
 
 def handwritingfile_to_input_vector(handwriting_filename, n_input, numcontext):
-    '''
+    """
     Turn an handwriting file into feature representation.
 
     This function has been modified from Mozilla DeepSpeech:
@@ -48,11 +50,10 @@ def handwritingfile_to_input_vector(handwriting_filename, n_input, numcontext):
     # This Source Code Form is subject to the terms of the Mozilla Public
     # License, v. 2.0. If a copy of the MPL was not distributed with this
     # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-    '''
+    """
 
-    
-    orig_inputs =np.load(handwriting_filename,None)  # (57,20)
-   # print('File name',handwriting_filename);
+    orig_inputs = np.load(handwriting_filename, None)  # (57,20)
+    # print('File name',handwriting_filename);
 
     # We only keep every second feature (BiRNN stride = 2)
     orig_inputs = orig_inputs[::2]
@@ -62,7 +63,7 @@ def handwritingfile_to_input_vector(handwriting_filename, n_input, numcontext):
     # because of:
     #  - n_input dimensions for the current mfcc feature set
     #  - numcontext*n_input dimensions for each of the past and future (x2) mfcc feature set
-    # => so n_input + 2*numcontext*n_input    
+    # => so n_input + 2*numcontext*n_input
     train_inputs = np.array([], np.float32)
     train_inputs.resize((orig_inputs.shape[0], n_input + 2 * n_input * numcontext))
 
@@ -84,16 +85,16 @@ def handwritingfile_to_input_vector(handwriting_filename, n_input, numcontext):
         # Pick up to numcontext time slices in the past, and complete with empty
         # mfcc features
         need_empty_past = max(0, (context_past_min - time_slice))
-        empty_source_past = list(empty_mfcc for empty_slots in range(need_empty_past))
-        data_source_past = orig_inputs[max(0, time_slice - numcontext):time_slice]
-        assert(len(empty_source_past) + len(data_source_past) == numcontext)
+        empty_source_past = [empty_mfcc for empty_slots in range(need_empty_past)]
+        data_source_past = orig_inputs[max(0, time_slice - numcontext) : time_slice]
+        assert len(empty_source_past) + len(data_source_past) == numcontext
 
         # Pick up to numcontext time slices in the future, and complete with empty
         # mfcc features
         need_empty_future = max(0, (time_slice - context_future_max))
-        empty_source_future = list(empty_mfcc for empty_slots in range(need_empty_future))
-        data_source_future = orig_inputs[time_slice + 1:time_slice + numcontext + 1]
-        assert(len(empty_source_future) + len(data_source_future) == numcontext)
+        empty_source_future = [empty_mfcc for empty_slots in range(need_empty_future)]
+        data_source_future = orig_inputs[time_slice + 1 : time_slice + numcontext + 1]
+        assert len(empty_source_future) + len(data_source_future) == numcontext
 
         if need_empty_past:
             past = np.concatenate((empty_source_past, data_source_past))
@@ -110,7 +111,7 @@ def handwritingfile_to_input_vector(handwriting_filename, n_input, numcontext):
         future = np.reshape(future, numcontext * n_input)
 
         train_inputs[time_slice] = np.concatenate((past, now, future))
-        assert(len(train_inputs[time_slice]) == n_input + 2 * n_input * numcontext)
+        assert len(train_inputs[time_slice]) == n_input + 2 * n_input * numcontext
 
     # Scale/standardize the inputs
     # This can be done more efficiently in the TensorFlow graph
@@ -118,10 +119,16 @@ def handwritingfile_to_input_vector(handwriting_filename, n_input, numcontext):
     return train_inputs
 
 
-def pad_sequences(sequences, maxlen=None, dtype=np.float32,
-                  padding='post', truncating='post', value=0.):
+def pad_sequences(
+    sequences,
+    maxlen=None,
+    dtype=np.float32,
+    padding="post",
+    truncating="post",
+    value=0.0,
+):
 
-    '''
+    """
     # From TensorLayer:
     # http://tensorlayer.readthedocs.io/en/latest/_modules/tensorlayer/prepro.html
 
@@ -144,7 +151,7 @@ def pad_sequences(sequences, maxlen=None, dtype=np.float32,
         Returns:
             numpy.ndarray: Padded sequences shape = (number_of_sequences, maxlen)
             numpy.ndarray: original sequence lengths
-    '''
+    """
     lengths = np.asarray([len(s) for s in sequences], dtype=np.int64)
 
     nb_samples = len(sequences)
@@ -153,7 +160,7 @@ def pad_sequences(sequences, maxlen=None, dtype=np.float32,
 
     # take the sample shape from the first non empty sequence
     # checking for consistency in the main loop below.
-    sample_shape = tuple()
+    sample_shape = ()
     for s in sequences:
         if len(s) > 0:
             sample_shape = np.asarray(s).shape[1:]
@@ -163,9 +170,9 @@ def pad_sequences(sequences, maxlen=None, dtype=np.float32,
     for idx, s in enumerate(sequences):
         if len(s) == 0:
             continue  # empty list was found
-        if truncating == 'pre':
+        if truncating == "pre":
             trunc = s[-maxlen:]
-        elif truncating == 'post':
+        elif truncating == "post":
             trunc = s[:maxlen]
         else:
             raise ValueError('Truncating type "%s" not understood' % truncating)
@@ -173,13 +180,15 @@ def pad_sequences(sequences, maxlen=None, dtype=np.float32,
         # check `trunc` has expected shape
         trunc = np.asarray(trunc, dtype=dtype)
         if trunc.shape[1:] != sample_shape:
-            raise ValueError('Shape of sample %s of sequence at position %s is different from expected shape %s' %
-                             (trunc.shape[1:], idx, sample_shape))
+            raise ValueError(
+                "Shape of sample %s of sequence at position %s is different from "
+                "expected shape %s" % (trunc.shape[1:], idx, sample_shape)
+            )
 
-        if padding == 'post':
-            x[idx, :len(trunc)] = trunc
-        elif padding == 'pre':
-            x[idx, -len(trunc):] = trunc
+        if padding == "post":
+            x[idx, : len(trunc)] = trunc
+        elif padding == "pre":
+            x[idx, -len(trunc) :] = trunc
         else:
             raise ValueError('Padding type "%s" not understood' % padding)
     return x, lengths

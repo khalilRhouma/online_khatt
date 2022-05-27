@@ -11,7 +11,7 @@ import tensorflow as tf
 from tensorflow.python.ops import ctc_ops
 
 # Custom modules
-from src.utils.text import ndarray_to_text, sparse_tuple_to_texts
+# from src.utils.text import ndarray_to_text, sparse_tuple_to_texts
 
 # in future different than utils class
 from src.utils.helpers import create_optimizer
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 class Trainer(object):
-    '''
+    """
     Class to train a handwriting recognition model with TensorFlow.
 
     Requirements:
@@ -38,11 +38,12 @@ class Trainer(object):
     Features:
     - Batch loading of input data
     - Checkpoints model
-    - Label error rate is the edit (Levenshtein) distance of the top path vs true sentence
+    - Label error rate is the edit (Levenshtein) distance of the top path vs true
+    sentence
     - Logs summary stats for TensorBoard
     - Epoch 1: Train starting with shortest transcriptions, then shuffle
 
-    # Note: All calls to tf.name_scope or tf.summary.* support TensorBoard visualization.
+    # Note: All calls to tf.name_scope or tf.summary.* support TensorBoard visualization
 
     This class was initially based on open source code from Mozilla DeepSpeech:
     https://github.com/mozilla/DeepSpeech/blob/master/DeepSpeech.py
@@ -50,14 +51,17 @@ class Trainer(object):
     # This Source Code Form is subject to the terms of the Mozilla Public
     # License, v. 2.0. If a copy of the MPL was not distributed with this
     # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-    '''
-    #TODO: upgrade tensorflow to 2.* versioN
-    #      change logging: https://stackoverflow.com/questions/55318626/module-tensorflow-has-no-attribute-logging
-    def __init__(self,
-                 config_file='neural_network.ini',
-                 model_name=None,
-                 model_path=None,
-                 debug=False):
+    """
+
+    # TODO: upgrade tensorflow to 2.* version
+    # change logging: https://stackoverflow.com/questions/55318626/module-tensorflow-has-no-attribute-logging
+    def __init__(
+        self,
+        config_file="neural_network.ini",
+        model_name=None,
+        model_path=None,
+        debug=False,
+    ):
         # set TF logging verbosity
         tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -70,8 +74,8 @@ class Trainer(object):
 
         # Verify that the GPU is operational, if not use CPU
         if not gpu_tool.check_if_gpu_available(self.tf_device):
-            self.tf_device = '/cpu:0'
-        logging.info('Using this device for main computations: %s', self.tf_device)
+            self.tf_device = "/cpu:0"
+        logging.info("Using this device for main computations: %s", self.tf_device)
 
         # set the directories
         self.set_up_directories(model_name)
@@ -83,32 +87,33 @@ class Trainer(object):
         parser = ConfigParser(os.environ)
         if not os.path.exists(self.conf_path):
             raise IOError("Configuration file '%s' does not exist" % self.conf_path)
-        logging.info('Loading config from %s', self.conf_path)
+        logging.info("Loading config from %s", self.conf_path)
         parser.read(self.conf_path)
 
         # set which set of configs to import
-        config_header = 'nn'
+        config_header = "nn"
 
-        logger.info('config header: %s', config_header)
+        logger.info("config header: %s", config_header)
 
-        self.epochs = parser.getint(config_header, 'epochs')
-        logger.debug('self.epochs = %d', self.epochs)
+        self.epochs = parser.getint(config_header, "epochs")
+        logger.debug("self.epochs = %d", self.epochs)
 
-        self.network_type = parser.get(config_header, 'network_type')
+        self.network_type = parser.get(config_header, "network_type")
 
         # Number of  features 20
-        self.n_input = parser.getint(config_header, 'n_input')
+        self.n_input = parser.getint(config_header, "n_input")
 
         # Number of contextual samples to include
-        self.n_context = parser.getint(config_header, 'n_context')
+        self.n_context = parser.getint(config_header, "n_context")
 
         # self.decode_train = parser.getboolean(config_header, 'decode_train')
         # self.random_seed = parser.getint(config_header, 'random_seed')
-        self.model_dir = parser.get(config_header, 'model_dir')
+        self.model_dir = parser.get(config_header, "model_dir")
 
-        #set the session name         
-        self.session_name = '{}_{}'.format(
-           self.network_type, time.strftime("%Y-%m-%d_%H-%M-%S"))
+        # set the session name
+        self.session_name = "{}_{}".format(
+            self.network_type, time.strftime("%Y-%m-%d_%H-%M-%S")
+        )
         # self.session_name = '{}'.format(
         #     self.network_type)
         # sess_prefix_str = 'train'
@@ -117,50 +122,49 @@ class Trainer(object):
         #         sess_prefix_str, self.session_name)
 
         # How often to save the model
-        self.SAVE_MODEL_EPOCH_NUM = parser.getint(
-            config_header, 'SAVE_MODEL_EPOCH_NUM')
+        self.SAVE_MODEL_EPOCH_NUM = parser.getint(config_header, "SAVE_MODEL_EPOCH_NUM")
 
         # decode dev set after N epochs
-        self.VALIDATION_EPOCH_NUM = parser.getint(
-            config_header, 'VALIDATION_EPOCH_NUM')
+        self.VALIDATION_EPOCH_NUM = parser.getint(config_header, "VALIDATION_EPOCH_NUM")
 
         # decide when to stop training prematurely
         self.CURR_VALIDATION_LER_DIFF = parser.getfloat(
-            config_header, 'CURR_VALIDATION_LER_DIFF')
+            config_header, "CURR_VALIDATION_LER_DIFF"
+        )
 
         self.AVG_VALIDATION_LER_EPOCHS = parser.getint(
-            config_header, 'AVG_VALIDATION_LER_EPOCHS')
+            config_header, "AVG_VALIDATION_LER_EPOCHS"
+        )
         # initialize list to hold average validation at end of each epoch
-        self.AVG_VALIDATION_LERS = [
-            1.0 for _ in range(self.AVG_VALIDATION_LER_EPOCHS)]
+        self.AVG_VALIDATION_LERS = [1.0 for _ in range(self.AVG_VALIDATION_LER_EPOCHS)]
 
         # setup type of decoder
-        self.beam_search_decoder = parser.get(
-            config_header, 'beam_search_decoder')
+        self.beam_search_decoder = parser.get(config_header, "beam_search_decoder")
 
         # determine if the data input order should be shuffled after every epic
         self.shuffle_data_after_epoch = parser.getboolean(
-            config_header, 'shuffle_data_after_epoch')
+            config_header, "shuffle_data_after_epoch"
+        )
 
         # initialize to store the minimum validation set label error rate
-        self.min_dev_ler = parser.getfloat(config_header, 'min_dev_ler')
+        self.min_dev_ler = parser.getfloat(config_header, "min_dev_ler")
 
         # set up GPU if available
-        self.tf_device = str(parser.get(config_header, 'tf_device'))
+        self.tf_device = str(parser.get(config_header, "tf_device"))
 
         # set up the max amount of simultaneous users
         # this restricts GPU usage to the inverse of self.simultaneous_users_count
-        self.simultaneous_users_count = parser.getint(config_header, 'simultaneous_users_count')
+        self.simultaneous_users_count = parser.getint(
+            config_header, "simultaneous_users_count"
+        )
 
     def set_up_directories(self, model_name):
         # Set up model directory
         self.model_dir = os.path.join(get_model_dir(), self.model_dir)
         # summary will contain logs
-        self.SUMMARY_DIR = os.path.join(
-            self.model_dir, "summary", self.session_name)
+        self.SUMMARY_DIR = os.path.join(self.model_dir, "summary", self.session_name)
         # session will contain models
-        self.SESSION_DIR = os.path.join(
-            self.model_dir, "session", self.session_name)
+        self.SESSION_DIR = os.path.join(self.model_dir, "session", self.session_name)
 
         if not os.path.exists(self.SESSION_DIR):
             os.makedirs(self.SESSION_DIR)
@@ -169,46 +173,46 @@ class Trainer(object):
 
         # set the model name and restore if not None
         # if model_name is not None:
-        #     self.model_path = os.path.join(self.SESSION_DIR, model_name)            
+        #     self.model_path = os.path.join(self.SESSION_DIR, model_name)
         # else:
         #     self.model_path = None
 
     def set_up_model(self):
-        self.sets = ['train', 'dev', 'test']
+        self.sets = ["train", "dev", "test"]
 
         # read data set, inherits configuration path
         # to parse the config file for where data lives
-        self.data_sets = read_datasets(self.conf_path,
-                                       self.sets,
-                                       self.n_input,
-                                       self.n_context
-                                       )
+        self.data_sets = read_datasets(
+            self.conf_path, self.sets, self.n_input, self.n_context
+        )
 
         self.n_examples_train = len(self.data_sets.train._txt_files)
         self.n_examples_dev = len(self.data_sets.dev._txt_files)
         self.n_examples_test = len(self.data_sets.test._txt_files)
         self.batch_size = self.data_sets.train._batch_size
-        self.n_batches_per_epoch = int(np.ceil(
-            self.n_examples_train / self.batch_size))
+        self.n_batches_per_epoch = int(np.ceil(self.n_examples_train / self.batch_size))
 
-        logger.info('''Training model: {}
+        logger.info(
+            """Training model: {}
         Train examples: {:,}
         Dev examples: {:,}
         Test examples: {:,}
         Epochs: {}
         Training batch size: {}
-        Batches per epoch: {}'''.format(
-            self.session_name,
-            self.n_examples_train,
-            self.n_examples_dev,
-            self.n_examples_test,
-            self.epochs,
-            self.batch_size,
-            self.n_batches_per_epoch))
+        Batches per epoch: {}""".format(
+                self.session_name,
+                self.n_examples_train,
+                self.n_examples_dev,
+                self.n_examples_test,
+                self.epochs,
+                self.batch_size,
+                self.n_batches_per_epoch,
+            )
+        )
 
     def run_model(self):
         self.graph = tf.Graph()
-        with self.graph.as_default(), tf.device('/cpu:0'):
+        with self.graph.as_default(), tf.device("/cpu:0"):
 
             with tf.device(self.tf_device):
                 # Run multiple functions on the specificed tf_device
@@ -224,26 +228,26 @@ class Trainer(object):
             # create the configuration for the session
             tf_config = tf.ConfigProto()
             tf_config.allow_soft_placement = True
-            tf_config.gpu_options.per_process_gpu_memory_fraction = \
-                (1.0 / self.simultaneous_users_count)
+            tf_config.gpu_options.per_process_gpu_memory_fraction = (
+                1.0 / self.simultaneous_users_count
+            )
 
             # create the session
             self.sess = tf.Session(config=tf_config)
 
             # initialize the summary writer
-            self.writer = tf.summary.FileWriter(
-                self.SUMMARY_DIR, graph=self.sess.graph)
+            self.writer = tf.summary.FileWriter(self.SUMMARY_DIR, graph=self.sess.graph)
 
             # Add ops to save and restore all the variables
             self.saver = tf.train.Saver()
 
             # For printing out section headers
-            section = '\n{0:=^40}\n'
+            section = "\n{0:=^40}\n"
 
             # If there is a model_path declared, then restore the model
             if self.model_path is not None:
                 self.saver.restore(self.sess, self.model_path)
-                print('Model restored')
+                print("Model restored")
             # If there is NOT a model_path declared, build the model from scratch
             else:
                 # Op to initialize the variables
@@ -253,22 +257,28 @@ class Trainer(object):
                 self.sess.run(init_op)
 
             # MAIN LOGIC for running the training epochs
-            logger.info(section.format('Run training epoch'))
-        
+            logger.info(section.format("Run training epoch"))
+
             self.run_training_epochs()
 
-            logger.info(section.format('Decoding test data'))
+            logger.info(section.format("Decoding test data"))
             # make the assumption for working on the test data, that the epoch here is the last epoch
-            _, self.test_ler = self.run_batches(self.data_sets.test, is_training=False,
-                                                decode=True, write_to_file=False, epoch=self.epochs)
+            _, self.test_ler = self.run_batches(
+                self.data_sets.test,
+                is_training=False,
+                decode=True,
+                write_to_file=False,
+                epoch=self.epochs,
+            )
 
             # Add the final test data to the summary writer
             # (single point on the graph for end of training run)
             summary_line = self.sess.run(
-                self.test_ler_op, {self.ler_placeholder: self.test_ler})
+                self.test_ler_op, {self.ler_placeholder: self.test_ler}
+            )
             self.writer.add_summary(summary_line, self.epochs)
 
-            logger.info('Test Label Error Rate: {}'.format(self.test_ler))
+            logger.info("Test Label Error Rate: {}".format(self.test_ler))
 
             # save train summaries to disk
             self.writer.flush()
@@ -280,47 +290,53 @@ class Trainer(object):
         # shape = [batch_size, max_stepsize, n_input + (2 * n_input * n_context)]
         # the batch_size and max_stepsize can vary along each step
         self.input_tensor = tf.placeholder(
-            tf.float32, [None, None, self.n_input + (2 * self.n_input * self.n_context)], name='input')
+            tf.float32,
+            [None, None, self.n_input + (2 * self.n_input * self.n_context)],
+            name="input",
+        )
 
         # Use sparse_placeholder; will generate a SparseTensor, required by ctc_loss op.
-        self.targets = tf.sparse_placeholder(tf.int32, name='targets')
+        self.targets = tf.sparse_placeholder(tf.int32, name="targets")
         # 1d array of size [batch_size]
-        self.seq_length = tf.placeholder(tf.int32, [None], name='seq_length')
+        self.seq_length = tf.placeholder(tf.int32, [None], name="seq_length")
 
     def load_placeholder_into_network(self):
         # logits is the non-normalized output/activations from the last layer.
         # logits will be input for the loss function.
         # nn_model is from the import statement in the load_model function
         # summary_op variables are for tensorboard
-        if self.network_type == 'SimpleLSTM':
+        if self.network_type == "SimpleLSTM":
             self.logits, summary_op = SimpleLSTM_model(
-                self.conf_path,
-                self.input_tensor,
-                tf.to_int64(self.seq_length)
+                self.conf_path, self.input_tensor, tf.to_int64(self.seq_length)
             )
-        elif self.network_type == 'BiRNN':
+        elif self.network_type == "BiRNN":
             self.logits, summary_op = BiRNN_model(
                 self.conf_path,
                 self.input_tensor,
                 tf.to_int64(self.seq_length),
                 self.n_input,
-                self.n_context
+                self.n_context,
             )
         else:
-            raise ValueError('network_type must be BiRNN')
+            raise ValueError("network_type must be BiRNN")
         self.summary_op = tf.summary.merge([summary_op])
 
     def setup_loss_function(self):
         with tf.name_scope("loss"):
             self.total_loss = ctc_ops.ctc_loss(
-                self.targets, self.logits, self.seq_length,ignore_longer_outputs_than_inputs=True)
+                self.targets,
+                self.logits,
+                self.seq_length,
+                ignore_longer_outputs_than_inputs=True,
+            )
             self.avg_loss = tf.reduce_mean(self.total_loss)
             self.loss_summary = tf.summary.scalar("avg_loss", self.avg_loss)
 
             self.cost_placeholder = tf.placeholder(dtype=tf.float32, shape=[])
 
             self.train_cost_op = tf.summary.scalar(
-                "train_avg_loss", self.cost_placeholder)
+                "train_avg_loss", self.cost_placeholder
+            )
 
     def setup_optimizer(self):
         # Note: The optimizer is created in models/RNN/utils.py
@@ -330,12 +346,14 @@ class Trainer(object):
 
     def setup_decoder(self):
         with tf.name_scope("decode"):
-            if self.beam_search_decoder == 'default':               
+            if self.beam_search_decoder == "default":
                 self.decoded, self.log_prob = ctc_ops.ctc_beam_search_decoder(
-                    self.logits, self.seq_length, merge_repeated=False)
-            elif self.beam_search_decoder == 'greedy':
+                    self.logits, self.seq_length, merge_repeated=False
+                )
+            elif self.beam_search_decoder == "greedy":
                 self.decoded, self.log_prob = ctc_ops.ctc_greedy_decoder(
-                    self.logits, self.seq_length, merge_repeated=False)
+                    self.logits, self.seq_length, merge_repeated=False
+                )
             else:
                 logging.warning("Invalid beam search decoder option selected!")
 
@@ -344,17 +362,21 @@ class Trainer(object):
         with tf.name_scope("accuracy"):
             # Compute the edit (Levenshtein) distance of the top path
             distance = tf.edit_distance(
-                tf.cast(self.decoded[0], tf.int32), self.targets)
+                tf.cast(self.decoded[0], tf.int32), self.targets
+            )
 
             # Compute the label error rate (accuracy)
-            self.ler = tf.reduce_mean(distance, name='label_error_rate')
+            self.ler = tf.reduce_mean(distance, name="label_error_rate")
             self.ler_placeholder = tf.placeholder(dtype=tf.float32, shape=[])
             self.train_ler_op = tf.summary.scalar(
-                "train_label_error_rate", self.ler_placeholder)
+                "train_label_error_rate", self.ler_placeholder
+            )
             self.dev_ler_op = tf.summary.scalar(
-                "validation_label_error_rate", self.ler_placeholder)
+                "validation_label_error_rate", self.ler_placeholder
+            )
             self.test_ler_op = tf.summary.scalar(
-                "test_label_error_rate", self.ler_placeholder)
+                "test_label_error_rate", self.ler_placeholder
+            )
 
     def run_training_epochs(self):
         train_start = time.time()
@@ -362,8 +384,10 @@ class Trainer(object):
             # Initialize variables that can be updated
             save_dev_model = False
             stop_training = False
-            is_checkpoint_step, is_validation_step = \
-                self.validation_and_checkpoint_check(epoch)
+            (
+                is_checkpoint_step,
+                is_validation_step,
+            ) = self.validation_and_checkpoint_check(epoch)
 
             epoch_start = time.time()
 
@@ -372,25 +396,31 @@ class Trainer(object):
                 is_training=True,
                 decode=False,
                 write_to_file=False,
-                epoch=epoch)
+                epoch=epoch,
+            )
 
             epoch_duration = time.time() - epoch_start
 
-            log = 'Epoch {}/{}, train_cost: {:.3f}, \
-                   train_ler: {:.3f}, time: {:.2f} sec'
-            logger.info(log.format(
-                epoch + 1,
-                self.epochs,
-                self.train_cost,
-                self.train_ler,
-                epoch_duration))
+            log = "Epoch {}/{}, train_cost: {:.3f}, \
+                   train_ler: {:.3f}, time: {:.2f} sec"
+            logger.info(
+                log.format(
+                    epoch + 1,
+                    self.epochs,
+                    self.train_cost,
+                    self.train_ler,
+                    epoch_duration,
+                )
+            )
 
             summary_line = self.sess.run(
-                self.train_ler_op, {self.ler_placeholder: self.train_ler})
+                self.train_ler_op, {self.ler_placeholder: self.train_ler}
+            )
             self.writer.add_summary(summary_line, epoch)
 
             summary_line = self.sess.run(
-                self.train_cost_op, {self.cost_placeholder: self.train_cost})
+                self.train_cost_op, {self.cost_placeholder: self.train_cost}
+            )
             self.writer.add_summary(summary_line, epoch)
 
             # Shuffle the data for the next epoch
@@ -403,43 +433,49 @@ class Trainer(object):
 
             if (epoch + 1) == self.epochs or is_checkpoint_step:
                 # save the final model
-                save_path = self.saver.save(self.sess, os.path.join(
-                    self.SESSION_DIR, 'model.ckpt'), epoch)
+                save_path = self.saver.save(
+                    self.sess, os.path.join(self.SESSION_DIR, "model.ckpt"), epoch
+                )
                 logger.info("Model saved: {}".format(save_path))
 
             if save_dev_model:
                 # If the dev set is not improving,
                 # the training is killed to prevent overfitting
                 # And then save the best validation performance model
-                save_path = self.saver.save(self.sess, os.path.join(
-                    self.SESSION_DIR, 'model-best.ckpt'))
+                save_path = self.saver.save(
+                    self.sess, os.path.join(self.SESSION_DIR, "model-best.ckpt")
+                )
                 logger.info(
-                    "Model with best validation label error rate saved: {}".
-                    format(save_path))
+                    "Model with best validation label error rate saved: {}".format(
+                        save_path
+                    )
+                )
 
             if stop_training:
                 break
 
         train_duration = time.time() - train_start
-        logger.info('Training complete, total duration: {:.2f} min'.format(
-            train_duration / 60))
+        logger.info(
+            "Training complete, total duration: {:.2f} min".format(train_duration / 60)
+        )
 
     def run_validation_step(self, epoch):
         dev_ler = 0
 
-        _, dev_ler = self.run_batches(self.data_sets.dev,
-                                      is_training=False,
-                                      decode=True,
-                                      write_to_file=False,
-                                      epoch=epoch)
+        _, dev_ler = self.run_batches(
+            self.data_sets.dev,
+            is_training=False,
+            decode=True,
+            write_to_file=False,
+            epoch=epoch,
+        )
 
-        logger.info('Validation Label Error Rate: {}'.format(dev_ler))
-        with open("validation_results.txt", "a") as file:                    
-                     file.write("epoch %s\t" % epoch)
-                     file.write('Validation Label Error Rate: {} \n'.format(dev_ler))
+        logger.info("Validation Label Error Rate: {}".format(dev_ler))
+        with open("validation_results.txt", "a") as file:
+            file.write("epoch %s\t" % epoch)
+            file.write("Validation Label Error Rate: {} \n".format(dev_ler))
 
-        summary_line = self.sess.run(
-            self.dev_ler_op, {self.ler_placeholder: dev_ler})
+        summary_line = self.sess.run(self.dev_ler_op, {self.ler_placeholder: dev_ler})
         self.writer.add_summary(summary_line, epoch)
 
         if dev_ler < self.min_dev_ler:
@@ -452,12 +488,14 @@ class Trainer(object):
         if history_avg_ler - dev_ler <= self.CURR_VALIDATION_LER_DIFF:
             log = "Validation label error rate not improved by more than {:.2%} \
                   after {} epochs. Exit"
-            warnings.warn(log.format(self.CURR_VALIDATION_LER_DIFF,
-                                     self.AVG_VALIDATION_LER_EPOCHS))
+            warnings.warn(
+                log.format(
+                    self.CURR_VALIDATION_LER_DIFF, self.AVG_VALIDATION_LER_EPOCHS
+                )
+            )
 
         # save avg validation accuracy in the next slot
-        self.AVG_VALIDATION_LERS[
-            epoch % self.AVG_VALIDATION_LER_EPOCHS] = dev_ler
+        self.AVG_VALIDATION_LERS[epoch % self.AVG_VALIDATION_LER_EPOCHS] = dev_ler
 
     def validation_and_checkpoint_check(self, epoch):
         # initially set at False unless indicated to change
@@ -485,46 +523,59 @@ class Trainer(object):
             # Get next batch of training data (handwriting features) and transcripts
             source, source_lengths, sparse_labels = dataset.next_batch()
 
-            feed = {self.input_tensor: source,
-                    self.targets: sparse_labels,
-                    self.seq_length: source_lengths}
+            feed = {
+                self.input_tensor: source,
+                self.targets: sparse_labels,
+                self.seq_length: source_lengths,
+            }
 
             # If the is_training is false, this means straight decoding without computing loss
             if is_training:
                 # avg_loss is the loss_op, optimizer is the train_op;
                 # running these pushes tensors (data) through graph
-                batch_cost, _ = self.sess.run(
-                    [self.avg_loss, self.optimizer], feed)
+                batch_cost, _ = self.sess.run([self.avg_loss, self.optimizer], feed)
                 self.train_cost += batch_cost * dataset._batch_size
-                logger.debug('Batch cost: %.2f | Train cost: %.2f',
-                             batch_cost, self.train_cost)
+                logger.debug(
+                    "Batch cost: %.2f | Train cost: %.2f", batch_cost, self.train_cost
+                )
 
-            self.train_ler += self.sess.run(self.ler, feed_dict=feed) * dataset._batch_size
-            logger.debug('Label error rate: %.2f   @ Epoch %d  ,  Batch %d ' , self.train_ler,epoch+1,batch+1)
+            self.train_ler += (
+                self.sess.run(self.ler, feed_dict=feed) * dataset._batch_size
+            )
+            logger.debug(
+                "Label error rate: %.2f   @ Epoch %d  ,  Batch %d ",
+                self.train_ler,
+                epoch + 1,
+                batch + 1,
+            )
 
             # Turn on decode only 1 batch per epoch
-            
-            if decode  :
-                d = self.sess.run(self.decoded[0], feed_dict={
-                    self.input_tensor: source,
-                    self.targets: sparse_labels,
-                    self.seq_length: source_lengths}
+
+            if decode:
+                d = self.sess.run(
+                    self.decoded[0],
+                    feed_dict={
+                        self.input_tensor: source,
+                        self.targets: sparse_labels,
+                        self.seq_length: source_lengths,
+                    },
                 )
-              
-                dense_decoded = tf.sparse_tensor_to_dense(
-                    d, default_value=-1).eval(session=self.sess)
-                
+
+                dense_decoded = tf.sparse_tensor_to_dense(d, default_value=-1).eval(
+                    session=self.sess
+                )
+
                 print(sparse_labels[1])
                 print(dense_decoded[0])
-                
+
                 # write the result to file
-                print('Genenrating output labels')
+                print("Genenrating output labels")
                 with open("model_results.txt", "w") as file:
                     for item in dense_decoded[0]:
-                         file.write("%s," % item)
+                        file.write("%s," % item)
                     file.write("\n")
-              
-            '''  
+
+            """
                 dense_labels = sparse_tuple_to_texts(sparse_labels)
 
                 # only print a set number of example translations
@@ -542,7 +593,7 @@ class Trainer(object):
                 # save out variables for testing
                 self.dense_decoded = dense_decoded
                 self.dense_labels = dense_labels
-        '''
+        """
 
         # Metrics mean
         if is_training:
@@ -551,42 +602,48 @@ class Trainer(object):
 
         # Populate summary for histograms and distributions in tensorboard
         self.accuracy, summary_line = self.sess.run(
-            [self.avg_loss, self.summary_op], feed)
+            [self.avg_loss, self.summary_op], feed
+        )
         self.writer.add_summary(summary_line, epoch)
 
         return self.train_cost, self.train_ler
 
 
 # to run in console
-if __name__ == '__main__':
-  
-  #'model-best.ckpt'
+if __name__ == "__main__":
+
+    #'model-best.ckpt'
     import sys
+
     print(sys.version)
     import click
 
     # Use click to parse command line arguments
     @click.command()
-    @click.option('--config', default='neural_network.ini', help='Configuration file name')
-    @click.option('--name', default=None, help='Model name for logging')
-    @click.option('--path', default=None, help='Model checkpoint path')
-    @click.option('--debug', type=bool, default=False,
-                  help='Use debug settings in config file')
-    
-   
+    @click.option(
+        "--config", default="neural_network.ini", help="Configuration file name"
+    )
+    @click.option("--name", default=None, help="Model name for logging")
+    @click.option("--path", default=None, help="Model checkpoint path")
+    @click.option(
+        "--debug", type=bool, default=False, help="Use debug settings in config file"
+    )
+
     # Train RNN model using a given configuration file
-    def main(config='neural_network.ini', name=None, path=None, debug=False):
-        logging.basicConfig(level=logging.DEBUG,
-                            format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
+    def main(config="neural_network.ini", name=None, path=None, debug=False):
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        )
         global logger
         logger = logging.getLogger(os.path.basename(__file__))
 
         # create the Trainer object
         trainer = Trainer(
-            config_file=config, model_name=name, model_path=path, debug=debug)
+            config_file=config, model_name=name, model_path=path, debug=debug
+        )
 
         # run the training
         trainer.run_model()
-        
 
     main()

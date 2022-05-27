@@ -1,6 +1,7 @@
 import codecs
-import numpy as np
-import re
+
+# import numpy as np
+# import re
 import struct
 
 
@@ -11,13 +12,13 @@ class Alphabet(object):
         self._str_to_label = {}
         self._size = 0
         if config_file:
-            with codecs.open(config_file, 'r', 'utf-8') as fin:
+            with codecs.open(config_file, "r", "utf-8") as fin:
                 for line in fin:
-                    if line[0:2] == '\\#':
-                        line = '#\n'
-                    elif line[0] == '#':
+                    if line[0:2] == "\\#":
+                        line = "#\n"
+                    elif line[0] == "#":
                         continue
-                    self._label_to_str[self._size] = line[:-1] # remove the line ending
+                    self._label_to_str[self._size] = line[:-1]  # remove the line ending
                     self._str_to_label[line[:-1]] = self._size
                     self._size += 1
 
@@ -29,9 +30,10 @@ class Alphabet(object):
             return self._str_to_label[string]
         except KeyError as e:
             raise KeyError(
-                'ERROR: Your transcripts contain characters (e.g. \'{}\') which do not occur in data/alphabet.txt! Use ' \
-                'util/check_characters.py to see what characters are in your [train,dev,test].csv transcripts, and ' \
-                'then add all these to data/alphabet.txt.'.format(string)
+                "ERROR: Your transcripts contain characters (e.g. '{}') which do not "
+                "occur in data/alphabet.txt! Use util/check_characters.py to see"
+                " what characters are in your [train,dev,test].csv transcripts, and "
+                "then add all these to data/alphabet.txt.".format(string)
             ).with_traceback(e.__traceback__)
 
     def has_char(self, char):
@@ -44,7 +46,7 @@ class Alphabet(object):
         return res
 
     def decode(self, labels):
-        res = ''
+        res = ""
         for label in labels:
             res += self._string_from_label(label)
         return res
@@ -56,13 +58,13 @@ class Alphabet(object):
         res = bytearray()
 
         # We start by writing the number of pairs in the buffer as uint16_t.
-        res += struct.pack('<H', self._size)
+        res += struct.pack("<H", self._size)
         for key, value in self._label_to_str.items():
-            value = value.encode('utf-8')
+            value = value.encode("utf-8")
             # struct.pack only takes fixed length strings/buffers, so we have to
             # construct the correct format string with the length of the encoded
             # label.
-            res += struct.pack('<HH{}s'.format(len(value)), key, len(value), value)
+            res += struct.pack("<HH{}s".format(len(value)), key, len(value), value)
         return bytes(res)
 
     def size(self):

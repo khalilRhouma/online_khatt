@@ -8,8 +8,8 @@ goal is to improve/optimize the code and fine-tune the model on other dataset
 conda env create -f environment.yaml
 ```
 
-## Data Preparation 
-All handwriting samples have to be in the following format 
+## Data Preparation
+All handwriting samples have to be in the following format
 ```
 679.785826771654 70.0346456692913 0
 679.785826771654 70.0346456692913 0

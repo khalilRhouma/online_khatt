@@ -4,10 +4,10 @@ unrar x Training.rar data/ && rm -r Training.rar
 unrar x Validation.rar data/ && rm -r Validation.rar
 
 # creat points from inkml
-python src/data/data_preparation.py 
+python src/data/data_preparation.py
 
 # create features data
-python src/data/data_preprocessing.py 
+python src/data/data_preprocessing.py
 
 # move preprocessed data under data/ dir
 cp -r preprocessed_data/* data/

@@ -14,63 +14,154 @@ def create_points_and_target_inputs(data_path, save_dir):
     # create data input
     ink_paths = list(Path(data_path).glob("*_coor.txt"))
 
-    os.makedirs(save_dir,exist_ok=True)
+    os.makedirs(save_dir, exist_ok=True)
     print(len(ink_paths))
-    for filename in ink_paths :
-            with open(filename) as file:
-                process_single_file(file,filename, f'{save_dir}/{filename.stem}_input.npy', normalize=True)
-                file.close()
-                try:
-                    os.rename(filename,'processed/'+filename)
-                except Exception as e:
-                    pass
+    for filename in ink_paths:
+        with open(filename) as file:
+            process_single_file(
+                file, filename, f"{save_dir}/{filename.stem}_input.npy", normalize=True
+            )
+            file.close()
+            try:
+                os.rename(filename, "processed/" + filename)
+            except Exception as e:
+                pass
 
     # create target inputs
     # create buckwalter alphabet
-    backwalter_labels = ["'", "|", ">", "&", "<", "}", "A", "b", "p", "t", "v", "j", "H", "x", "d", "*",
-                    "r", "z", "s", "$", "S", "D", "T", "Z", "E", "g", "_", "f", "q", "k",  "l", "m", 
-                        "n", "h", "w", "Y", "y", "F", "N", "K", "a", "u", "i",  "~", "o", "`", "{", "P",
-                        "J", "V", "G", " ", ".", ':','=','«','»','(', ')','[',']','/','؟','!',"%",'0','1','2','3','4','4','5','6','7','8','9', "#\n"]
-    with open("backwalter_labels.txt","w") as f:
+    backwalter_labels = [
+        "'",
+        "|",
+        ">",
+        "&",
+        "<",
+        "}",
+        "A",
+        "b",
+        "p",
+        "t",
+        "v",
+        "j",
+        "H",
+        "x",
+        "d",
+        "*",
+        "r",
+        "z",
+        "s",
+        "$",
+        "S",
+        "D",
+        "T",
+        "Z",
+        "E",
+        "g",
+        "_",
+        "f",
+        "q",
+        "k",
+        "l",
+        "m",
+        "n",
+        "h",
+        "w",
+        "Y",
+        "y",
+        "F",
+        "N",
+        "K",
+        "a",
+        "u",
+        "i",
+        "~",
+        "o",
+        "`",
+        "{",
+        "P",
+        "J",
+        "V",
+        "G",
+        " ",
+        ".",
+        ":",
+        "=",
+        "«",
+        "»",
+        "(",
+        ")",
+        "[",
+        "]",
+        "/",
+        "؟",
+        "!",
+        "%",
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "#\n",
+    ]
+    with open("backwalter_labels.txt", "w") as f:
         f.writelines("\n".join(backwalter_labels))
 
-    alphabet=Alphabet('backwalter_labels.txt')
+    alphabet = Alphabet("backwalter_labels.txt")
     text_target_path = list(Path(data_path).glob("*.txt"))
 
-    os.makedirs(save_dir,exist_ok=True)
+    os.makedirs(save_dir, exist_ok=True)
     for file_name in text_target_path:
-        unicode = ['\ufeff','\xa0','،','–','‐','؛',',','"','؟','?','‘','\n']
+        unicode = ["\ufeff", "\xa0", "،", "–", "‐", "؛", ",", '"', "؟", "?", "‘", "\n"]
         if "coor" not in file_name.name:
-            with open(file_name,'r') as f:
+            with open(file_name, "r") as f:
                 text = f.read()
                 for i in unicode:
                     if i in text:
-                        text= text.replace(i," ")
+                        text = text.replace(i, " ")
             label = buckwalter.transliterate(text.strip())
             # print(label)
-            np.save(str(save_dir)+'/'+ file_name.name.replace('.txt','_target.npy'), alphabet.encode(label))
+            np.save(
+                str(save_dir) + "/" + file_name.name.replace(".txt", "_target.npy"),
+                alphabet.encode(label),
+            )
 
     # delete "_coor" from file name
     for file in os.listdir(save_dir):
         if "_coor" in file:
-            os.rename(os.path.join(save_dir,file), os.path.join(save_dir,file.replace('_coor','')))
+            os.rename(
+                os.path.join(save_dir, file),
+                os.path.join(save_dir, file.replace("_coor", "")),
+            )
+
 
 def create_test_set(val_save, test_save):
-    
+
     val_files = os.listdir(val_save)
     print(len(val_files))
-    val_files_names = list({f.rsplit('_',1)[0] for f in val_files})
+    val_files_names = list({f.rsplit("_", 1)[0] for f in val_files})
     shuffle(val_files_names)
     partition = len(val_files_names) // 2 + 1
     val_files, test_files = val_files_names[:partition], val_files_names[partition:]
-    os.makedirs(test_save,exist_ok=True)
+    os.makedirs(test_save, exist_ok=True)
     for file in test_files:
-        shutil.move(os.path.join(val_save,file+"_input.npy"),os.path.join(test_save,file+"_input.npy"))
-        shutil.move(os.path.join(val_save,file+"_target.npy"),os.path.join(test_save,file+"_target.npy"))
+        shutil.move(
+            os.path.join(val_save, file + "_input.npy"),
+            os.path.join(test_save, file + "_input.npy"),
+        )
+        shutil.move(
+            os.path.join(val_save, file + "_target.npy"),
+            os.path.join(test_save, file + "_target.npy"),
+        )
+
 
 def main(data_path):
 
-    os.makedirs(data_path,exist_ok=True)
+    os.makedirs(data_path, exist_ok=True)
 
     train_data_path = "data/Training/"
     val_data_path = "data/Validation/"
@@ -87,6 +178,7 @@ def main(data_path):
 
     print("Done!")
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     data_path = "preprocessed_data/"
     main(data_path)
