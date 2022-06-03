@@ -5,8 +5,6 @@ import codecs
 import re
 import csv
 import tensorflow as tf
-import codecs
-import re
 import struct
 
 # Constants
@@ -57,9 +55,10 @@ class Alphabet(object):
             return self._str_to_label[string]
         except KeyError as e:
             raise KeyError(
-                "ERROR: Your transcripts contain characters (e.g. '{}') which do not occur in data/alphabet.txt! Use "
-                "util/check_characters.py to see what characters are in your [train,dev,test].csv transcripts, and "
-                "then add all these to data/alphabet.txt.".format(string)
+                "ERROR: Your transcripts contain characters (e.g. '{}') which do not "
+                "occur in data/alphabet.txt! Use  util/check_characters.py to see what "
+                "characters are in your [train,dev,test].csv transcripts, and then add "
+                "all these to data/alphabet.txt.".format(string)
             ).with_traceback(e.__traceback__)
 
     def has_char(self, char):
@@ -197,7 +196,7 @@ def sparse_tensor_value_to_texts(value):
     return sparse_tuple_to_texts((value.indices, value.values, value.dense_shape))
 
 
-def sparse_tuple_to_texts(tuple):
+def sparse_tuple_to_texts(text_tuple):
     """
     This function has been modified from Mozilla DeepSpeech:
     https://github.com/mozilla/DeepSpeech/blob/master/util/text.py
@@ -211,13 +210,14 @@ def sparse_tuple_to_texts(tuple):
         # f.readline() # ignore first line (header)
         mydict = dict(csv.reader(f, delimiter=","))
 
-    indices = tuple[0]
-    values = tuple[1]
-    results = [""] * tuple[2][0]
+    indices = text_tuple[0]
+    values = text_tuple[1]
+    results = [""] * text_tuple[2][0]
     for i in range(len(indices)):
         index = indices[i][0]
         c = values[i]
-        # c = ' ' if c == SPACE_INDEX else chr(c + FIRST_INDEX)# Fakhr here put ur map whic function that takes number & return char
+        # c = ' ' if c == SPACE_INDEX else chr(c + FIRST_INDEX)# Fakhr here put ur map
+        # whic function that takes number & return char
         # print(mydict[str(c)])
         c = " " if c == SPACE_INDEX else mydict[str(c)] + ","
         results[index] = results[index] + c
@@ -242,7 +242,7 @@ def ndarray_to_text(value):
     # License, v. 2.0. If a copy of the MPL was not distributed with this
     # file, You can obtain one at http://mozilla.org/MPL/2.0/.
     """
-    with open("E:\Handwriting2017\Handwriting/src/features/utils/letters_map.csv") as f:
+    with open("src/features/utils/letters_map.csv") as f:
         # f.readline() # ignore first line (header)
         mydict = dict(csv.reader(f, delimiter=","))
 
@@ -255,7 +255,8 @@ def ndarray_to_text(value):
 
 def gather_nd(params, indices, shape):
     """
-    # Function aken from https://github.com/tensorflow/tensorflow/issues/206#issuecomment-229678962
+    # Function taken from
+    # https://github.com/tensorflow/tensorflow/issues/206#issuecomment-229678962
 
     """
     rank = len(shape)
@@ -276,10 +277,12 @@ def ctc_label_dense_to_sparse(labels, label_lengths, batch_size):
     but sparse data and queues don't mix well, so we store padded tensors in the
     queue and convert to a sparse representation after dequeuing a batch.
 
-    Taken from https://github.com/tensorflow/tensorflow/issues/1742#issuecomment-205291527
+    Taken from
+    https://github.com/tensorflow/tensorflow/issues/1742#issuecomment-205291527
     """
 
-    # The second dimension of labels must be equal to the longest label length in the batch
+    # The second dimension of labels must be equal to the longest label length
+    # in the batch
     correct_shape_assert = tf.assert_equal(
         tf.shape(labels)[1], tf.reduce_max(label_lengths)
     )

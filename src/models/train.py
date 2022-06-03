@@ -20,8 +20,8 @@ from src.utils.set_dirs import get_conf_dir, get_model_dir
 import src.utils.gpu as gpu_tool
 
 # Import the setup scripts for different types of model
-from rnn import BiRNN as BiRNN_model
-from rnn import SimpleLSTM as SimpleLSTM_model
+from rnn import bi_rnn as bi_rnn_model
+from rnn import simple_lstm as simple_lstm_model
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,8 @@ class Trainer(object):
     """
 
     # TODO: upgrade tensorflow to 2.* version
-    # change logging: https://stackoverflow.com/questions/55318626/module-tensorflow-has-no-attribute-logging
+    # change logging: https://stackoverflow.com/questions/55318626/\
+    #                 module-tensorflow-has-no-attribute-logging
     def __init__(
         self,
         config_file="neural_network.ini",
@@ -210,81 +211,6 @@ class Trainer(object):
             )
         )
 
-    def run_model(self):
-        self.graph = tf.Graph()
-        with self.graph.as_default(), tf.device("/cpu:0"):
-
-            with tf.device(self.tf_device):
-                # Run multiple functions on the specificed tf_device
-                # tf_device GPU set in configs, but is overridden if not available
-                self.setup_network_and_graph()
-                self.load_placeholder_into_network()
-                self.setup_loss_function()
-                self.setup_optimizer()
-                self.setup_decoder()
-
-            self.setup_summary_statistics()
-
-            # create the configuration for the session
-            tf_config = tf.ConfigProto()
-            tf_config.allow_soft_placement = True
-            tf_config.gpu_options.per_process_gpu_memory_fraction = (
-                1.0 / self.simultaneous_users_count
-            )
-
-            # create the session
-            self.sess = tf.Session(config=tf_config)
-
-            # initialize the summary writer
-            self.writer = tf.summary.FileWriter(self.SUMMARY_DIR, graph=self.sess.graph)
-
-            # Add ops to save and restore all the variables
-            self.saver = tf.train.Saver()
-
-            # For printing out section headers
-            section = "\n{0:=^40}\n"
-
-            # If there is a model_path declared, then restore the model
-            if self.model_path is not None:
-                self.saver.restore(self.sess, self.model_path)
-                print("Model restored")
-            # If there is NOT a model_path declared, build the model from scratch
-            else:
-                # Op to initialize the variables
-                init_op = tf.global_variables_initializer()
-
-                # Initializate the weights and biases
-                self.sess.run(init_op)
-
-            # MAIN LOGIC for running the training epochs
-            logger.info(section.format("Run training epoch"))
-
-            self.run_training_epochs()
-
-            logger.info(section.format("Decoding test data"))
-            # make the assumption for working on the test data, that the epoch here is the last epoch
-            _, self.test_ler = self.run_batches(
-                self.data_sets.test,
-                is_training=False,
-                decode=True,
-                write_to_file=False,
-                epoch=self.epochs,
-            )
-
-            # Add the final test data to the summary writer
-            # (single point on the graph for end of training run)
-            summary_line = self.sess.run(
-                self.test_ler_op, {self.ler_placeholder: self.test_ler}
-            )
-            self.writer.add_summary(summary_line, self.epochs)
-
-            logger.info("Test Label Error Rate: {}".format(self.test_ler))
-
-            # save train summaries to disk
-            self.writer.flush()
-
-            self.sess.close()
-
     def setup_network_and_graph(self):
         # e.g: features
         # shape = [batch_size, max_stepsize, n_input + (2 * n_input * n_context)]
@@ -305,12 +231,12 @@ class Trainer(object):
         # logits will be input for the loss function.
         # nn_model is from the import statement in the load_model function
         # summary_op variables are for tensorboard
-        if self.network_type == "SimpleLSTM":
-            self.logits, summary_op = SimpleLSTM_model(
+        if self.network_type == "simple_lstm":
+            self.logits, summary_op = simple_lstm_model(
                 self.conf_path, self.input_tensor, tf.to_int64(self.seq_length)
             )
-        elif self.network_type == "BiRNN":
-            self.logits, summary_op = BiRNN_model(
+        elif self.network_type == "bi_rnn":
+            self.logits, summary_op = bi_rnn_model(
                 self.conf_path,
                 self.input_tensor,
                 tf.to_int64(self.seq_length),
@@ -318,7 +244,7 @@ class Trainer(object):
                 self.n_context,
             )
         else:
-            raise ValueError("network_type must be BiRNN")
+            raise ValueError("network_type must be bi_rnn")
         self.summary_op = tf.summary.merge([summary_op])
 
     def setup_loss_function(self):
@@ -397,6 +323,7 @@ class Trainer(object):
                 decode=False,
                 write_to_file=False,
                 epoch=epoch,
+                task="Train",
             )
 
             epoch_duration = time.time() - epoch_start
@@ -468,6 +395,7 @@ class Trainer(object):
             decode=True,
             write_to_file=False,
             epoch=epoch,
+            task="Validation",
         )
 
         logger.info("Validation Label Error Rate: {}".format(dev_ler))
@@ -511,7 +439,7 @@ class Trainer(object):
 
         return is_checkpoint_step, is_validation_step
 
-    def run_batches(self, dataset, is_training, decode, write_to_file, epoch):
+    def run_batches(self, dataset, is_training, decode, write_to_file, epoch, task=""):
         n_examples = len(dataset._txt_files)
 
         n_batches_per_epoch = int(np.ceil(n_examples / dataset._batch_size))
@@ -529,7 +457,8 @@ class Trainer(object):
                 self.seq_length: source_lengths,
             }
 
-            # If the is_training is false, this means straight decoding without computing loss
+            # If the is_training is false, this means straight decoding without
+            #  computing loss
             if is_training:
                 # avg_loss is the loss_op, optimizer is the train_op;
                 # running these pushes tensors (data) through graph
@@ -543,7 +472,8 @@ class Trainer(object):
                 self.sess.run(self.ler, feed_dict=feed) * dataset._batch_size
             )
             logger.debug(
-                "Label error rate: %.2f   @ Epoch %d  ,  Batch %d ",
+                "%s Label error rate: %.2f   @ Epoch %d  ,  Batch %d ",
+                task,
                 self.train_ler,
                 epoch + 1,
                 batch + 1,
@@ -608,11 +538,88 @@ class Trainer(object):
 
         return self.train_cost, self.train_ler
 
+    def run_model(self):
+        self.graph = tf.Graph()
+        with self.graph.as_default(), tf.device("/cpu:0"):
+
+            with tf.device(self.tf_device):
+                # Run multiple functions on the specificed tf_device
+                # tf_device GPU set in configs, but is overridden if not available
+                self.setup_network_and_graph()
+                self.load_placeholder_into_network()
+                self.setup_loss_function()
+                self.setup_optimizer()
+                self.setup_decoder()
+
+            self.setup_summary_statistics()
+
+            # create the configuration for the session
+            tf_config = tf.ConfigProto()
+            tf_config.allow_soft_placement = True
+            tf_config.gpu_options.per_process_gpu_memory_fraction = (
+                1.0 / self.simultaneous_users_count
+            )
+
+            # create the session
+            self.sess = tf.Session(config=tf_config)
+
+            # initialize the summary writer
+            self.writer = tf.summary.FileWriter(self.SUMMARY_DIR, graph=self.sess.graph)
+
+            # Add ops to save and restore all the variables
+            self.saver = tf.train.Saver()
+
+            # For printing out section headers
+            section = "\n{0:=^40}\n"
+
+            # If there is a model_path declared, then restore the model
+            if self.model_path is not None:
+                self.saver.restore(self.sess, self.model_path)
+                print("Model restored")
+            # If there is NOT a model_path declared, build the model from scratch
+            else:
+                # Op to initialize the variables
+                init_op = tf.global_variables_initializer()
+
+                # Initializate the weights and biases
+                self.sess.run(init_op)
+
+            # MAIN LOGIC for running the training epochs
+            logger.info(section.format("Run training epoch"))
+
+            self.run_training_epochs()
+
+            logger.info(section.format("Decoding test data"))
+            # make the assumption for working on the test data,
+            #  that the epoch here is the last epoch
+            _, self.test_ler = self.run_batches(
+                self.data_sets.test,
+                is_training=False,
+                decode=True,
+                write_to_file=False,
+                epoch=self.epochs,
+                task="Test",
+            )
+
+            # Add the final test data to the summary writer
+            # (single point on the graph for end of training run)
+            summary_line = self.sess.run(
+                self.test_ler_op, {self.ler_placeholder: self.test_ler}
+            )
+            self.writer.add_summary(summary_line, self.epochs)
+
+            logger.info("Test Label Error Rate: {}".format(self.test_ler))
+
+            # save train summaries to disk
+            self.writer.flush()
+
+            self.sess.close()
+
 
 # to run in console
 if __name__ == "__main__":
 
-    #'model-best.ckpt'
+    # 'model-best.ckpt'
     import sys
 
     print(sys.version)
@@ -628,7 +635,6 @@ if __name__ == "__main__":
     @click.option(
         "--debug", type=bool, default=False, help="Use debug settings in config file"
     )
-
     # Train RNN model using a given configuration file
     def main(config="neural_network.ini", name=None, path=None, debug=False):
         logging.basicConfig(

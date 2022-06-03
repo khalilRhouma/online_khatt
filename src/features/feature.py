@@ -6,9 +6,10 @@ np.warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 
 def calculate_feature_vector_sequence(ink, args, delayed_strokes=None):
     """
-    Calculates all features named in args for each point in inkectory ink. Valid features are "dir", "curv",
-    "penup", "hat", "vic_aspect", "vic_curl", "vic_line", "vic_slope" and "bitmap". Note that calculating the hat
-    feature requires precalculated delayed strokes.
+    Calculates all features named in args for each point in inkectory ink. Valid
+    features are "dir", "curv", "penup", "hat", "vic_aspect", "vic_curl", "vic_line",
+    "vic_slope" and "bitmap". Note that calculating the hat feature requires
+    precalculated delayed strokes.
     """
     ma = moving_average(ink[:, 0], 20)
     ma = (ink[:, 0] - ma).reshape(ma.shape[0], 1)
@@ -38,7 +39,8 @@ def moving_average(data_set, periods=3):
 
 
 def __calculate_feature_vector(ink, point_index, args, delayed_strokes=None):
-    # calculating number of features is not pretty because dir, curv and bitmap are actually more than one feature...
+    # calculating number of features is not pretty because dir, curv and bitmap are
+    # actually more than one feature...
     num_features = len(args)
     if "dir" in args:
         num_features += 1
@@ -161,6 +163,12 @@ def __vicinity_curliness(ink, point_idx):
     return float(segment_length) / max(dx, dy) - 2
 
 
+def dist_to_line(x, y, x1, x2, y1, y2):
+    return abs((y2 - y1) * x - (x2 - x1) * y + x2 * y1 - y2 * x1) / math.sqrt(
+        (y2 - y1) ** 2 + (x2 - x1) ** 2
+    )
+
+
 def __vicinity_lineness(ink, point_idx):
     # filter out cases where there is not enough points to either side
     if point_idx < 2 or point_idx > len(ink) - 3:
@@ -174,14 +182,15 @@ def __vicinity_lineness(ink, point_idx):
     y2 = v[last, 1]
     diag_line_length = math.sqrt((y2 - y1) ** 2 + (x2 - x1) ** 2)
     if diag_line_length == 0:
-        # first and last point have same coordinates, so we return average squared distance to that point
+        # first and last point have same coordinates, so we return average squared
+        # distance to that point
         return sum(
             [math.sqrt((y2 - y) ** 2 + (x2 - x) ** 2) ** 2 for [x, y] in v]
         ) / len(v)
-    dist_to_line = lambda x, y: abs(
-        (y2 - y1) * x - (x2 - x1) * y + x2 * y1 - y2 * x1
-    ) / math.sqrt((y2 - y1) ** 2 + (x2 - x1) ** 2)
-    return sum([dist_to_line(x, y) ** 2 for [x, y] in v]) / len(v)
+    # dist_to_line = lambda x, y: abs(
+    #     (y2 - y1) * x - (x2 - x1) * y + x2 * y1 - y2 * x1
+    # ) / math.sqrt((y2 - y1) ** 2 + (x2 - x1) ** 2)
+    return sum([dist_to_line(x, y, x1, x2, y1, y2) ** 2 for [x, y] in v]) / len(v)
 
 
 def __vicinity_slope(ink, point_idx):
@@ -200,7 +209,8 @@ def __vicinity_slope(ink, point_idx):
 
 
 def __context_bitmap(ink, point_idx, bin_size=10):
-    # the current point lies in the center of the bitmap and we use a 3x3 grid around that point
+    # the current point lies in the center of the bitmap and we use a 3x3 grid
+    # around that point
     window_origin_x = ink[point_idx][0] - 3 * bin_size / 2
     window_origin_y = ink[point_idx][1] - 3 * bin_size / 2
     bitmap = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
@@ -211,7 +221,7 @@ def __context_bitmap(ink, point_idx, bin_size=10):
         if 0 <= bin_x <= 2 and 0 <= bin_y <= 2:
             bitmap[bin_y][bin_x] += 1
             num_points += 1
-    return normalize(np.array([p / float(num_points) for bin in bitmap for p in bin]))
+    return normalize(np.array([p / float(num_points) for bin_ in bitmap for p in bin_]))
 
 
 def normalize(v):

@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 
-import sys
-import argparse
-import scipy.cluster.vq as vq
 import numpy as np
-import glob, os
+import os
 from pathlib import Path
 from src.features.preprocessing import preprocess_handwriting
 from src.features.feature import calculate_feature_vector_sequence
@@ -90,7 +87,7 @@ def main():
             try:
                 os.rename(filename, "processed/" + filename)
             except Exception as e:
-                pass
+                print(e)
 
 
 if __name__ == "__main__":

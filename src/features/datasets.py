@@ -5,14 +5,13 @@ from glob import glob
 from configparser import ConfigParser
 import logging
 from collections import namedtuple
+import numpy as np
 
 from src.utils.load_hw_to_mem import get_handwriting_and_transcript, pad_sequences
 from src.utils.text import sparse_tuple_from
 from src.utils.set_dirs import get_data_dir
 
 DataSets = namedtuple("DataSets", "train dev test")
-
-import numpy as np
 
 
 def handwriting_to_input_vector(points, numcep, numcontext):  # modify mozilla function
@@ -31,15 +30,15 @@ def handwriting_to_input_vector(points, numcep, numcontext):  # modify mozilla f
 
     orig_inputs = points  # (57,20)
 
-    # We only keep every second feature (BiRNN stride = 2)
+    # We only keep every second feature (bi_rnn stride = 2)
     orig_inputs = orig_inputs[::2]
 
     # For each time slice of the training set, we need to copy the context this makes
     # the numcep dimensions vector into a numcep + 2*numcep*numcontext dimensions
     # because of:
     #  - numcep dimensions for the current point feature set
-    #  - numcontext*numcep dimensions for each of the past and future (x2) point feature set
-    # => so numcep + 2*numcontext*numcep
+    #  - numcontext*numcep dimensions for each of the past and future (x2) point
+    # feature set  => so numcep + 2*numcontext*numcep
     train_inputs = np.array([], np.float32)
     train_inputs.resize((orig_inputs.shape[0], numcep + 2 * numcep * numcontext))
 
@@ -61,16 +60,14 @@ def handwriting_to_input_vector(points, numcep, numcontext):  # modify mozilla f
         # Pick up to numcontext time slices in the past, and complete with empty
         # point features
         need_empty_past = max(0, (context_past_min - time_slice))
-        empty_source_past = list(empty_point for empty_slots in range(need_empty_past))
+        empty_source_past = [empty_point for empty_slots in range(need_empty_past)]
         data_source_past = orig_inputs[max(0, time_slice - numcontext) : time_slice]
         assert len(empty_source_past) + len(data_source_past) == numcontext
 
         # Pick up to numcontext time slices in the future, and complete with empty
         # point features
         need_empty_future = max(0, (time_slice - context_future_max))
-        empty_source_future = list(
-            empty_point for empty_slots in range(need_empty_future)
-        )
+        empty_source_future = [empty_point for empty_slots in range(need_empty_future)]
         data_source_future = orig_inputs[time_slice + 1 : time_slice + numcontext + 1]
         assert len(empty_source_future) + len(data_source_future) == numcontext
 
@@ -97,79 +94,79 @@ def handwriting_to_input_vector(points, numcep, numcontext):  # modify mozilla f
     return train_inputs
 
 
-def pad_sequences(
-    sequences,
-    maxlen=None,
-    dtype=np.float32,
-    padding="post",
-    truncating="post",
-    value=0.0,
-):
+# def pad_sequences(
+#     sequences,
+#     maxlen=None,
+#     dtype=np.float32,
+#     padding="post",
+#     truncating="post",
+#     value=0.0,
+# ):
 
-    """
-    # From TensorLayer:
-    # http://tensorlayer.readthedocs.io/en/latest/_modules/tensorlayer/prepro.html
+#     """
+#     # From TensorLayer:
+#     # http://tensorlayer.readthedocs.io/en/latest/_modules/tensorlayer/prepro.html
 
-    Pads each sequence to the same length of the longest sequence.
+#     Pads each sequence to the same length of the longest sequence.
 
-        If maxlen is provided, any sequence longer than maxlen is truncated to
-        maxlen. Truncation happens off either the beginning or the end
-        (default) of the sequence. Supports post-padding (default) and
-        pre-padding.
+#         If maxlen is provided, any sequence longer than maxlen is truncated to
+#         maxlen. Truncation happens off either the beginning or the end
+#         (default) of the sequence. Supports post-padding (default) and
+#         pre-padding.
 
-        Args:
-            sequences: list of lists where each element is a sequence
-            maxlen: int, maximum length
-            dtype: type to cast the resulting sequence.
-            padding: 'pre' or 'post', pad either before or after each sequence.
-            truncating: 'pre' or 'post', remove values from sequences larger
-            than maxlen either in the beginning or in the end of the sequence
-            value: float, value to pad the sequences to the desired value.
+#         Args:
+#             sequences: list of lists where each element is a sequence
+#             maxlen: int, maximum length
+#             dtype: type to cast the resulting sequence.
+#             padding: 'pre' or 'post', pad either before or after each sequence.
+#             truncating: 'pre' or 'post', remove values from sequences larger
+#             than maxlen either in the beginning or in the end of the sequence
+#             value: float, value to pad the sequences to the desired value.
 
-        Returns:
-            numpy.ndarray: Padded sequences shape = (number_of_sequences, maxlen)
-            numpy.ndarray: original sequence lengths
-    """
-    lengths = np.asarray([len(s) for s in sequences], dtype=np.int64)
+#         Returns:
+#             numpy.ndarray: Padded sequences shape = (number_of_sequences, maxlen)
+#             numpy.ndarray: original sequence lengths
+#     """
+#     lengths = np.asarray([len(s) for s in sequences], dtype=np.int64)
 
-    nb_samples = len(sequences)
-    if maxlen is None:
-        maxlen = np.max(lengths)
+#     nb_samples = len(sequences)
+#     if maxlen is None:
+#         maxlen = np.max(lengths)
 
-    # take the sample shape from the first non empty sequence
-    # checking for consistency in the main loop below.
-    sample_shape = ()
-    for s in sequences:
-        if len(s) > 0:
-            sample_shape = np.asarray(s).shape[1:]
-            break
+#     # take the sample shape from the first non empty sequence
+#     # checking for consistency in the main loop below.
+#     sample_shape = ()
+#     for s in sequences:
+#         if len(s) > 0:
+#             sample_shape = np.asarray(s).shape[1:]
+#             break
 
-    x = (np.ones((nb_samples, maxlen) + sample_shape) * value).astype(dtype)
-    for idx, s in enumerate(sequences):
-        if len(s) == 0:
-            continue  # empty list was found
-        if truncating == "pre":
-            trunc = s[-maxlen:]
-        elif truncating == "post":
-            trunc = s[:maxlen]
-        else:
-            raise ValueError('Truncating type "%s" not understood' % truncating)
+#     x = (np.ones((nb_samples, maxlen) + sample_shape) * value).astype(dtype)
+#     for idx, s in enumerate(sequences):
+#         if len(s) == 0:
+#             continue  # empty list was found
+#         if truncating == "pre":
+#             trunc = s[-maxlen:]
+#         elif truncating == "post":
+#             trunc = s[:maxlen]
+#         else:
+#             raise ValueError('Truncating type "%s" not understood' % truncating)
 
-        # check `trunc` has expected shape
-        trunc = np.asarray(trunc, dtype=dtype)
-        if trunc.shape[1:] != sample_shape:
-            raise ValueError(
-                "Shape of sample %s of sequence at position %s is different from "
-                "expected shape %s" % (trunc.shape[1:], idx, sample_shape)
-            )
+#         # check `trunc` has expected shape
+#         trunc = np.asarray(trunc, dtype=dtype)
+#         if trunc.shape[1:] != sample_shape:
+#             raise ValueError(
+#                 "Shape of sample %s of sequence at position %s is different from "
+#                 "expected shape %s" % (trunc.shape[1:], idx, sample_shape)
+#             )
 
-        if padding == "post":
-            x[idx, : len(trunc)] = trunc
-        elif padding == "pre":
-            x[idx, -len(trunc) :] = trunc
-        else:
-            raise ValueError('Padding type "%s" not understood' % padding)
-    return x, lengths
+#         if padding == "post":
+#             x[idx, : len(trunc)] = trunc
+#         elif padding == "pre":
+#             x[idx, -len(trunc) :] = trunc
+#         else:
+#             raise ValueError('Padding type "%s" not understood' % padding)
+#     return x, lengths
 
 
 def read_datasets(conf_path, sets, numcep, numcontext, thread_count=8):
@@ -328,7 +325,10 @@ def txt_filenames(dataset_path, start_idx=0, limit=None, sort="alpha"):
     if sort == "filesize_high_low":
         reverse = True
     elif sort == "random":
-        key = lambda *args: random()
+
+        def key(*args):
+            return random()
+
     txt_files = sorted(txt_files, key=key, reverse=reverse)
 
     return txt_files[start_idx : limit + start_idx]

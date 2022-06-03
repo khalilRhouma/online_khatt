@@ -7,20 +7,20 @@ from configparser import ConfigParser
 from src.utils.helpers import variable_on_cpu
 
 
-def variable_on_cpu(name, shape, initializer):
-    """
-    Next we concern ourselves with graph creation.
-    However, before we do so we must introduce a utility function ``variable_on_cpu()``
-    used to create a variable in CPU memory.
-    """
-    # Use the /cpu:0 device for scoped operations
-    with tf.device("/cpu:0"):
-        # Create or get apropos variable
-        var = tf.get_variable(name=name, shape=shape, initializer=initializer)
-    return var
+# def variable_on_cpu(name, shape, initializer):
+#     """
+#     Next we concern ourselves with graph creation.
+#     However, before we do so we must introduce a utility function
+#      ``variable_on_cpu()`` used to create a variable in CPU memory.
+#     """
+#     # Use the /cpu:0 device for scoped operations
+#     with tf.device("/cpu:0"):
+#         # Create or get apropos variable
+#         var = tf.get_variable(name=name, shape=shape, initializer=initializer)
+#     return var
 
 
-def SimpleLSTM_bk(conf_path, input_tensor, seq_length):
+def simple_lstm_bk(conf_path, input_tensor, seq_length):
     """
     This function was initially based on open source code from Mozilla DeepSpeech:
     https://github.com/mozilla/DeepSpeech/blob/master/DeepSpeech.py
@@ -32,7 +32,7 @@ def SimpleLSTM_bk(conf_path, input_tensor, seq_length):
     parser = ConfigParser(os.environ)
     parser.read("/content/drive/My Drive/Colab/HandwritingColab1/neural_network.ini")
 
-    # SimpleLSTM
+    # simple_lstm
     n_character = parser.getint("simplelstm", "n_character")
     b1_stddev = parser.getfloat("simplelstm", "b1_stddev")
     h1_stddev = parser.getfloat("simplelstm", "h1_stddev")
@@ -48,7 +48,7 @@ def SimpleLSTM_bk(conf_path, input_tensor, seq_length):
     with tf.name_scope("lstm"):
         # Initialize weights
         # with tf.device('/cpu:0'):
-        W = tf.get_variable(
+        w = tf.get_variable(
             "W",
             shape=[n_hidden_units, n_character],
             # initializer=tf.truncated_normal_initializer(stddev=h1_stddev),
@@ -73,7 +73,8 @@ def SimpleLSTM_bk(conf_path, input_tensor, seq_length):
         # Stacking rnn cells
         stack = tf.contrib.rnn.MultiRNNCell([cell] * n_layers, state_is_tuple=True)
 
-        # Get layer activations (second output is the final state of the layer, do not need)
+        # Get layer activations
+        # (second output is the final state of the layer, do not need)
         outputs, _ = tf.nn.dynamic_rnn(
             stack, input_tensor, seq_length, time_major=False, dtype=tf.float32
         )
@@ -83,9 +84,9 @@ def SimpleLSTM_bk(conf_path, input_tensor, seq_length):
 
         # Perform affine transformation to layer output:
         # multiply by weights (linear transformation), add bias (translation)
-        logits = tf.add(tf.matmul(outputs, W), b)
+        logits = tf.add(tf.matmul(outputs, w), b)
 
-        tf.summary.histogram("weights", W)
+        tf.summary.histogram("weights", w)
         tf.summary.histogram("biases", b)
         tf.summary.histogram("activations", logits)
 
@@ -100,7 +101,7 @@ def SimpleLSTM_bk(conf_path, input_tensor, seq_length):
     return logits, summary_op
 
 
-def SimpleLSTM(conf_path, input_tensor, seq_length):
+def simple_lstm(conf_path, input_tensor, seq_length):
     """
     This function was initially based on open source code from Mozilla DeepSpeech:
     https://github.com/mozilla/DeepSpeech/blob/master/DeepSpeech.py
@@ -112,7 +113,7 @@ def SimpleLSTM(conf_path, input_tensor, seq_length):
     parser = ConfigParser(os.environ)
     parser.read(conf_path)
 
-    # SimpleLSTM
+    # simple_lstm
     n_character = parser.getint("simplelstm", "n_character")
     b1_stddev = parser.getfloat("simplelstm", "b1_stddev")
     h1_stddev = parser.getfloat("simplelstm", "h1_stddev")
@@ -128,7 +129,7 @@ def SimpleLSTM(conf_path, input_tensor, seq_length):
     with tf.name_scope("lstm"):
         # Initialize weights
         # with tf.device('/cpu:0'):
-        W = tf.get_variable(
+        w = tf.get_variable(
             "W",
             shape=[n_hidden_units, n_character],
             # initializer=tf.truncated_normal_initializer(stddev=h1_stddev),
@@ -158,7 +159,8 @@ def SimpleLSTM(conf_path, input_tensor, seq_length):
             [cell() for _ in range(n_layers)], state_is_tuple=True
         )
 
-        # Get layer activations (second output is the final state of the layer, do not need)
+        # Get layer activations
+        # (second output is the final state of the layer, do not need)
         outputs, _ = tf.nn.dynamic_rnn(
             stack, input_tensor, seq_length, time_major=False, dtype=tf.float32
         )
@@ -168,9 +170,9 @@ def SimpleLSTM(conf_path, input_tensor, seq_length):
 
         # Perform affine transformation to layer output:
         # multiply by weights (linear transformation), add bias (translation)
-        logits = tf.add(tf.matmul(outputs, W), b)
+        logits = tf.add(tf.matmul(outputs, w), b)
 
-        tf.summary.histogram("weights", W)
+        tf.summary.histogram("weights", w)
         tf.summary.histogram("biases", b)
         tf.summary.histogram("activations", logits)
 
@@ -185,7 +187,7 @@ def SimpleLSTM(conf_path, input_tensor, seq_length):
     return logits, summary_op
 
 
-def BiRNN(conf_path, batch_x, seq_length, n_input, n_context):
+def bi_rnn(conf_path, batch_x, seq_length, n_input, n_context):
     """
     This function was initially based on open source code from Mozilla DeepSpeech:
     https://github.com/mozilla/DeepSpeech/blob/master/DeepSpeech.py
@@ -222,8 +224,10 @@ def BiRNN(conf_path, batch_x, seq_length, n_input, n_context):
     # Input shape: [batch_size, n_steps, n_input + 2*n_input*n_context]
     batch_x_shape = tf.shape(batch_x)
 
-    # Reshaping `batch_x` to a tensor with shape `[n_steps*batch_size, n_input + 2*n_input*n_context]`.
-    # This is done to prepare the batch for input into the first layer which expects a tensor of rank `2`.
+    # Reshaping `batch_x` to a tensor with shape
+    # `[n_steps*batch_size, n_input + 2*n_input*n_context]`.
+    # This is done to prepare the batch for input into the first layer which
+    # expects a tensor of rank `2`.
 
     # Permute n_steps and batch_size
     batch_x = tf.transpose(batch_x, [1, 0, 2])
@@ -312,7 +316,8 @@ def BiRNN(conf_path, batch_x, seq_length, n_input, n_context):
         )
 
         # `layer_3` is now reshaped into `[n_steps, batch_size, 2*n_cell_dim]`,
-        # as the LSTM BRNN expects its input to be of shape `[max_time, batch_size, input_size]`.
+        # as the LSTM BRNN expects its input to be of shape
+        # `[max_time, batch_size, input_size]`.
         layer_3 = tf.reshape(layer_3, [-1, batch_x_shape[0], n_hidden_3])
 
         # Now we feed `layer_3` into the LSTM BRNN cell and obtain the LSTM BRNN output.
@@ -327,13 +332,15 @@ def BiRNN(conf_path, batch_x, seq_length, n_input, n_context):
 
         tf.summary.histogram("activations", outputs)
 
-        # Reshape outputs from two tensors each of shape [n_steps, batch_size, n_cell_dim]
+        # Reshape outputs from two tensors each of shape
+        # [n_steps, batch_size, n_cell_dim]
         # to a single tensor of shape [n_steps*batch_size, 2*n_cell_dim]
         outputs = tf.concat(outputs, 2)
         outputs = tf.reshape(outputs, [-1, 2 * n_cell_dim])
 
     with tf.name_scope("fc5"):
-        # Now we feed `outputs` to the fifth hidden layer with clipped RELU activation and dropout
+        # Now we feed `outputs` to the fifth hidden layer with clipped RELU
+        # activation and dropout
         b5 = variable_on_cpu(
             "b5", [n_hidden_5], tf.random_normal_initializer(stddev=b5_stddev)
         )

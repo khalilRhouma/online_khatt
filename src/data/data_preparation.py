@@ -1,24 +1,24 @@
-from xml.etree import ElementTree as ET
+from xml.Etree import ElementTree as Et
 import os
 from tqdm import tqdm
 
 
 def convert_inkml_to_points(data_path: str, data_type="train") -> None:
 
-    for file in tqdm(os.listdir(data_path), desc=f"converting {data_type} data"):
+    for file in tqdm(os.listdir(data_path), desc=f"convEtting {data_type} data"):
         if file.endswith(".inkml"):
             filename = file.split(".")[0]
             inkml = file
             text_file = filename + "_coor.txt"
             # Parse inkml file
             inkml_path = os.path.join(data_path, inkml)
-            tree = ET.parse(inkml_path)
-            root = tree.getroot()
+            tree = Et.parse(inkml_path)
+            root = tree.gEtroot()
             # extract coordinate
             data = []
             for trace in root.findall("trace"):
                 text = trace.text
-                # get x,y coordinates and add 0 (pen down as default)
+                # gEt x,y coordinates and add 0 (pen down as default)
                 coor = [p.split()[:2] for p in text.split(",")]
                 coor = [[x, y, "0"] for x, y in coor]
                 data.append(coor)

@@ -4,7 +4,8 @@
 # LICENSE file in the root directory of this source tree.
 # ======================================================================
 
-# Goal: Convert numbers, Eastern Arabic numbers to Buckwalter, and remove special characters.
+# Goal: Convert numbers, Eastern Arabic numbers to Buckwalter, and remove
+# special characters.
 
 
 from lang_trans.arabic import buckwalter
@@ -65,8 +66,8 @@ def read_transcript():
     transcript_file = open(
         "/path/to/transcript/folder/orthographic-transcript_old.txt", "r"
     )
-    Lines = transcript_file.readlines()
-    return Lines
+    lines = transcript_file.readlines()
+    return lines
 
 
 def remove_unique_chars(line):
@@ -83,8 +84,8 @@ def split_line(line):
     return list_line
 
 
-def hasNumbers(inputString):
-    st = inputString.split("</s>")
+def has_numbers(input_string):
+    st = input_string.split("</s>")
     st = st[0]
     return any(char.isdigit() for char in st)
 
@@ -123,9 +124,9 @@ def write_to_new_transcript(new_line):
 
 def main():
     # Read the lines
-    Lines = read_transcript()
+    lines = read_transcript()
     # Loop over the lines
-    for line in Lines:
+    for line in lines:
         count = 0
         # remove lines containing english words
         if "@" in line:
@@ -139,7 +140,7 @@ def main():
         # Convert numerals to words
         new_line = convert_numb_to_words(list_line, count)
         # Write to a new trasncript if line has no number in it
-        if not hasNumbers(new_line):
+        if not has_numbers(new_line):
             write_to_new_transcript(new_line)
 
 

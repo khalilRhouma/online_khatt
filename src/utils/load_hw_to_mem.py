@@ -55,15 +55,15 @@ def handwritingfile_to_input_vector(handwriting_filename, n_input, numcontext):
     orig_inputs = np.load(handwriting_filename, None)  # (57,20)
     # print('File name',handwriting_filename);
 
-    # We only keep every second feature (BiRNN stride = 2)
+    # We only keep every second feature (bi_rnn stride = 2)
     orig_inputs = orig_inputs[::2]
 
     # For each time slice of the training set, we need to copy the context this makes
     # the n_input dimensions vector into a n_input + 2*n_input*numcontext dimensions
     # because of:
     #  - n_input dimensions for the current mfcc feature set
-    #  - numcontext*n_input dimensions for each of the past and future (x2) mfcc feature set
-    # => so n_input + 2*numcontext*n_input
+    #  - numcontext*n_input dimensions for each of the past and future (x2) mfcc
+    # feature set  => so n_input + 2*numcontext*n_input
     train_inputs = np.array([], np.float32)
     train_inputs.resize((orig_inputs.shape[0], n_input + 2 * n_input * numcontext))
 
