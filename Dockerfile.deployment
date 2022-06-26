@@ -1,0 +1,17 @@
+FROM tiangolo/uwsgi-nginx-flask:python3.8-alpine
+
+WORKDIR /app
+
+RUN apk --update add bash nano
+ENV STATIC_URL /static
+ENV STATIC_PATH ./static
+
+COPY src /app
+COPY requirements.txt requirements.txt
+COPY deployment/ /app
+
+RUN pip install -r requirements.txt
+
+ENTRYPOINT [ "python" ]
+
+CMD ["main.py" ]

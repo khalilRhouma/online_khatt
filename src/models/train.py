@@ -1,27 +1,28 @@
 #!/usr/bin/env python
 
+import logging
 import os
-import numpy as np
 import time
 import warnings
 from configparser import ConfigParser
-import logging
 
+import numpy as np
+import src.utils.gpu as gpu_tool
 import tensorflow as tf
-from tensorflow.python.ops import ctc_ops
-
-# Custom modules
-# from src.utils.text import ndarray_to_text, sparse_tuple_to_texts
+from src.features.datasets import read_datasets
 
 # in future different than utils class
 from src.utils.helpers import create_optimizer
-from src.features.datasets import read_datasets
 from src.utils.set_dirs import get_conf_dir, get_model_dir
-import src.utils.gpu as gpu_tool
+from tensorflow.python.ops import ctc_ops
 
 # Import the setup scripts for different types of model
 from rnn import bi_rnn as bi_rnn_model
 from rnn import simple_lstm as simple_lstm_model
+
+# Custom modules
+# from src.utils.text import ndarray_to_text, sparse_tuple_to_texts
+
 
 logger = logging.getLogger(__name__)
 
@@ -85,31 +86,31 @@ class Trainer(object):
         self.set_up_model()
 
     def load_configs(self):
-        parser = ConfigParser(os.environ)
+        self.parser = ConfigParser(os.environ)
         if not os.path.exists(self.conf_path):
             raise IOError("Configuration file '%s' does not exist" % self.conf_path)
         logging.info("Loading config from %s", self.conf_path)
-        parser.read(self.conf_path)
+        self.parser.read(self.conf_path)
 
         # set which set of configs to import
         config_header = "nn"
 
         logger.info("config header: %s", config_header)
 
-        self.epochs = parser.getint(config_header, "epochs")
+        self.epochs = self.parser.getint(config_header, "epochs")
         logger.debug("self.epochs = %d", self.epochs)
 
-        self.network_type = parser.get(config_header, "network_type")
+        self.network_type = self.parser.get(config_header, "network_type")
 
         # Number of  features 20
-        self.n_input = parser.getint(config_header, "n_input")
+        self.n_input = self.parser.getint(config_header, "n_input")
 
         # Number of contextual samples to include
-        self.n_context = parser.getint(config_header, "n_context")
+        self.n_context = self.parser.getint(config_header, "n_context")
 
-        # self.decode_train = parser.getboolean(config_header, 'decode_train')
-        # self.random_seed = parser.getint(config_header, 'random_seed')
-        self.model_dir = parser.get(config_header, "model_dir")
+        # self.decode_train = self.parser.getboolean(config_header, 'decode_train')
+        # self.random_seed = self.parser.getint(config_header, 'random_seed')
+        self.model_dir = self.parser.get(config_header, "model_dir")
 
         # set the session name
         self.session_name = "{}_{}".format(
@@ -123,39 +124,43 @@ class Trainer(object):
         #         sess_prefix_str, self.session_name)
 
         # How often to save the model
-        self.SAVE_MODEL_EPOCH_NUM = parser.getint(config_header, "SAVE_MODEL_EPOCH_NUM")
+        self.SAVE_MODEL_EPOCH_NUM = self.parser.getint(
+            config_header, "SAVE_MODEL_EPOCH_NUM"
+        )
 
         # decode dev set after N epochs
-        self.VALIDATION_EPOCH_NUM = parser.getint(config_header, "VALIDATION_EPOCH_NUM")
+        self.VALIDATION_EPOCH_NUM = self.parser.getint(
+            config_header, "VALIDATION_EPOCH_NUM"
+        )
 
         # decide when to stop training prematurely
-        self.CURR_VALIDATION_LER_DIFF = parser.getfloat(
+        self.CURR_VALIDATION_LER_DIFF = self.parser.getfloat(
             config_header, "CURR_VALIDATION_LER_DIFF"
         )
 
-        self.AVG_VALIDATION_LER_EPOCHS = parser.getint(
+        self.AVG_VALIDATION_LER_EPOCHS = self.parser.getint(
             config_header, "AVG_VALIDATION_LER_EPOCHS"
         )
         # initialize list to hold average validation at end of each epoch
         self.AVG_VALIDATION_LERS = [1.0 for _ in range(self.AVG_VALIDATION_LER_EPOCHS)]
 
         # setup type of decoder
-        self.beam_search_decoder = parser.get(config_header, "beam_search_decoder")
+        self.beam_search_decoder = self.parser.get(config_header, "beam_search_decoder")
 
         # determine if the data input order should be shuffled after every epic
-        self.shuffle_data_after_epoch = parser.getboolean(
+        self.shuffle_data_after_epoch = self.parser.getboolean(
             config_header, "shuffle_data_after_epoch"
         )
 
         # initialize to store the minimum validation set label error rate
-        self.min_dev_ler = parser.getfloat(config_header, "min_dev_ler")
+        self.min_dev_ler = self.parser.getfloat(config_header, "min_dev_ler")
 
         # set up GPU if available
-        self.tf_device = str(parser.get(config_header, "tf_device"))
+        self.tf_device = str(self.parser.get(config_header, "tf_device"))
 
         # set up the max amount of simultaneous users
         # this restricts GPU usage to the inverse of self.simultaneous_users_count
-        self.simultaneous_users_count = parser.getint(
+        self.simultaneous_users_count = self.parser.getint(
             config_header, "simultaneous_users_count"
         )
 
@@ -267,7 +272,7 @@ class Trainer(object):
     def setup_optimizer(self):
         # Note: The optimizer is created in models/RNN/utils.py
         with tf.name_scope("train"):
-            self.optimizer = create_optimizer()
+            self.optimizer = create_optimizer(self.parser)
             self.optimizer = self.optimizer.minimize(self.avg_loss)
 
     def setup_decoder(self):

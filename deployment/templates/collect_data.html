@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{title}}{% endblock %}
+{% block head %}
+  {{ super() }}
+{% endblock %}
+{% block content %}
+<div class="row text-center">
+  <h1>{{ title}}</h1>
+  <canvas id="inputCanvas" width="900" height="200"></canvas>
+</div>
+<br/><br/>
+<div class="row text-center">
+  <form id="add-data-form" action="add-data" method="POST">
+    <input id="points" name="points" type="hidden" />
+    <!-- <input id="letter" name="letter" type="hidden" value="{{letter}}" /> -->
+    <button class="btn btn-primary" id="clearButton">Clear</button>
+    <button class="btn btn-primary" id="sendButton">Send data</button>
+  </form>
+</div>
+<div class="row text-center">
+  <h3>Data collection</h3>
+  <textarea name="points" id="dataArea" cols="90" rows="10">{{points}}</textarea>
+</div>
+{% endblock %}

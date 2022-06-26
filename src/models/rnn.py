@@ -30,7 +30,7 @@ def simple_lstm_bk(conf_path, input_tensor, seq_length):
     # file, You can obtain one at http://mozilla.org/MPL/2.0/.
     """
     parser = ConfigParser(os.environ)
-    parser.read("/content/drive/My Drive/Colab/HandwritingColab1/neural_network.ini")
+    parser.read(conf_path)
 
     # simple_lstm
     n_character = parser.getint("simplelstm", "n_character")
