@@ -1,4 +1,7 @@
-from flask import Flask, render_template, session, request
+import os
+
+from flask import Flask, render_template, request, session
+
 from inference import do_inference
 
 app = Flask(__name__)
@@ -70,4 +73,5 @@ def prediction_post():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=True, host="0.0.0.0", port=port)
