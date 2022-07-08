@@ -1,0 +1,37 @@
+
+FROM continuumio/miniconda3
+
+
+RUN apt-get update --fix-missing && \
+    apt-get install -y wget bzip2 ca-certificates curl git && \
+    apt-get clean
+
+WORKDIR /app
+ADD environment.yaml .
+RUN conda update -n base -c defaults conda
+RUN conda env create -f environment.yaml
+
+SHELL ["/bin/bash", "-c"]
+
+RUN echo "source activate khatt" > ~/.bashrci
+ENV PATH /opt/conda/envs/khatt/bin:$PATH
+
+# ENV CONDA_PIP /opt/conda/envs/khatt/bin/pip
+
+# RUN ${CONDA_PIP} install -e .
+ADD src src
+ADD models models
+ADD deployment/ .
+ADD setup.py .
+RUN pip install -e .
+
+# CMD ["/opt/conda/envs/khatt/bin/python", "main.py" ]
+
+ENV FLASK_APPLICATION_SETTINGS=config/settings.cfg
+EXPOSE 5000
+SHELL ["/bin/bash", "-c"]
+
+ENTRYPOINT export FLASK_ENV=development \
+    && export FLASK_DEBUG=0 \
+    && export FLASK_APP=main \
+    && python -m flask run --host=0.0.0.0

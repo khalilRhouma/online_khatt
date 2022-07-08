@@ -1,6 +1,8 @@
-models/*
+# models/*
 *.inkml
 *.txt
 *.npy
 *.pyc
 *.log
+*.xml
+*.iml

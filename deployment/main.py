@@ -1,11 +1,14 @@
-import os
+import logging
 
 from flask import Flask, render_template, request, session
 
 from inference import do_inference
 
 app = Flask(__name__)
+app.config.from_envvar("FLASK_APPLICATION_SETTINGS")
 app.secret_key = "online_khatt"
+logging.basicConfig(level=logging.INFO)
+logging.getLogger().setLevel(logging.INFO)
 
 
 @app.route("/")
@@ -58,10 +61,10 @@ def prediction_post():
             points = [points[i : i + 3] for i in range(0, len(points), 3)]
             prediction = do_inference(
                 points,
-                config_file="neural_network.ini",
-                model_path="../models/model.ckpt-14",
-                lm_binary_path="../models/lm/lm.binary",
-                lm_trie_path="../models/lm/trie",
+                config_file=app.config["CONFIG_FILE"],
+                model_path=app.config["MODLE_PATH"],
+                lm_binary_path=app.config["LM_BINARY_PATH"],
+                lm_trie_path=app.config["LM_TRIE_PATH"],
             )
         else:
             prediction = ""
@@ -73,5 +76,6 @@ def prediction_post():
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(debug=True, host="0.0.0.0", port=port)
+    # port = int(os.environ.get("PORT", 5000))
+    # app.run(debug=True, host="0.0.0.0", port=port)
+    app.run()
