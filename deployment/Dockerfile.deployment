@@ -1,6 +1,5 @@
 
-FROM continuumio/miniconda3
-
+FROM continuumio/miniconda3 as miniconda
 
 RUN apt-get update --fix-missing && \
     apt-get install -y wget bzip2 ca-certificates curl git && \
@@ -22,12 +21,15 @@ ENV PATH /opt/conda/envs/khatt/bin:$PATH
 ADD src src
 ADD models models
 ADD deployment/ .
+ADD alphabet.txt .
+ADD arabic_mapping.txt .
 ADD setup.py .
+
 RUN pip install -e .
 
 # CMD ["/opt/conda/envs/khatt/bin/python", "main.py" ]
 
-ENV FLASK_APPLICATION_SETTINGS=config/settings.cfg
+ENV FLASK_APPLICATION_SETTINGS=config/docker-settings.cfg
 EXPOSE 5000
 SHELL ["/bin/bash", "-c"]
 
