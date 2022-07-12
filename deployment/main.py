@@ -1,4 +1,5 @@
 import logging
+import traceback
 
 from flask import Flask, render_template, request, session
 
@@ -27,18 +28,6 @@ def add_data_get():
 @app.route("/add-data", methods=["POST"])
 def add_data_post():
 
-    # label = request.form['letter']
-    # labels = np.load('data/labels.npy')
-    # labels = np.append(labels, label)
-    # np.save('data/labels.npy', labels)
-
-    # pixels = request.form['pixels']
-    # pixels = pixels.split(',')
-    # img = np.array(pixels).astype(float).reshape(1, 50, 50)
-    # imgs = np.load('data/images.npy')
-    # imgs = np.vstack([imgs, img])
-    # np.save('data/images.npy', imgs)
-
     # session['message'] = f'"{label}" added to the training dataset'
     points = eval(f"[{request.form['points']}]")
     points = [points[i : i + 3] for i in range(0, len(points), 3)]
@@ -65,6 +54,8 @@ def prediction_post():
                 model_path=app.config["MODLE_PATH"],
                 lm_binary_path=app.config["LM_BINARY_PATH"],
                 lm_trie_path=app.config["LM_TRIE_PATH"],
+                alphabet_path=app.config["ALPHABET_PATH"],
+                arabic_mapping_path=app.config["ARABIC_MAPPING_PATH"],
             )
         else:
             prediction = ""
@@ -72,7 +63,8 @@ def prediction_post():
 
     except Exception as e:
         print(e)
-        return render_template("error.html")
+        tb = traceback.format_exc()
+        return render_template("error.html", traceback=tb)
 
 
 if __name__ == "__main__":

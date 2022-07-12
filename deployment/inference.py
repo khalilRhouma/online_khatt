@@ -40,8 +40,8 @@ class Loader:
 
         parser = ConfigParser(os.environ)
 
-        self.conf_path = os.path.join("../src/configs", self.config_file)
-        parser.read(self.conf_path)
+        # self.conf_path = os.path.join("../src/configs", self.config_file)
+        parser.read(self.config_file)
 
         self.network_type = parser.get(self.config_header_nn, "network_type")
         self.n_context = parser.getint(self.config_header_nn, "n_context")
@@ -104,7 +104,15 @@ def preprocess_data(points):
     return data
 
 
-def do_inference(points, config_file, model_path, lm_binary_path, lm_trie_path):
+def do_inference(
+    points,
+    config_file,
+    model_path,
+    lm_binary_path,
+    lm_trie_path,
+    alphabet_path,
+    arabic_mapping_path,
+):
 
     loader = Loader(
         config_file=config_file,
@@ -120,7 +128,7 @@ def do_inference(points, config_file, model_path, lm_binary_path, lm_trie_path):
     )
     seq_length = tf.placeholder(tf.int32, [None], name="seq_length")
     logits, _ = bi_rnn(
-        loader.conf_path,
+        loader.config_file,
         input_tensor,
         tf.to_int64(seq_length),
         loader.n_input,
@@ -130,10 +138,10 @@ def do_inference(points, config_file, model_path, lm_binary_path, lm_trie_path):
 
     data = preprocess_data(points)
     # alphabet = Alphabet('../backwalter_labels.txt')
-    alphabet = Alphabet("../alphabet.txt")
+    alphabet = Alphabet(alphabet_path)
     # convert this to funcation
     mapping = {}
-    with open("../arabic_mapping.txt", "r", encoding="utf-8") as inf:
+    with open(arabic_mapping_path, "r", encoding="utf-8") as inf:
         for line in inf:
             key, val = line.split("\t")
             mapping[key] = val.strip()
@@ -310,4 +318,6 @@ if __name__ == "__main__":
         model_path="../models/model.ckpt-14",
         lm_binary_path="../models/lm/lm.binary",
         lm_trie_path="../models/lm/trie",
+        alphabet_path="../alphabet.txt",
+        arabic_mapping_path="../arabic_mapping.txt",
     )
