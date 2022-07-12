@@ -1,6 +1,6 @@
 models/*
 *.inkml
-*.txt
+# *.txt
 *.npy
 *.pyc
 *.log
